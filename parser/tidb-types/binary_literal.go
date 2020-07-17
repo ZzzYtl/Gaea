@@ -24,7 +24,7 @@ import (
 
 	"github.com/pingcap/errors"
 
-	"github.com/XiaoMi/Gaea/parser/stmtctx"
+	"github.com/ZzzYtl/MyMask/parser/stmtctx"
 )
 
 // BinaryLiteral is the internal type for storing bit / hex literal type.

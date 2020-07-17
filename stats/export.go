@@ -35,7 +35,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/XiaoMi/Gaea/log"
+	"github.com/ZzzYtl/MyMask/log"
 )
 
 const defaultEmitPeriod = 60 * time.Second

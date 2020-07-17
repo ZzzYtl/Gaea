@@ -20,11 +20,11 @@ import (
 
 	"github.com/pingcap/errors"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/ast"
-	"github.com/XiaoMi/Gaea/parser/format"
-	"github.com/XiaoMi/Gaea/parser/tidb-types"
-	"github.com/XiaoMi/Gaea/util/hack"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/ast"
+	"github.com/ZzzYtl/MyMask/parser/format"
+	"github.com/ZzzYtl/MyMask/parser/tidb-types"
+	"github.com/ZzzYtl/MyMask/util/hack"
 )
 
 // The purpose of driver package is to decompose the dependency of the parser and

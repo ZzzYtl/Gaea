@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XiaoMi/Gaea/log"
-	etcdclient "github.com/XiaoMi/Gaea/models/etcd"
-	fileclient "github.com/XiaoMi/Gaea/models/file"
+	"github.com/ZzzYtl/MyMask/log"
+	etcdclient "github.com/ZzzYtl/MyMask/models/etcd"
+	fileclient "github.com/ZzzYtl/MyMask/models/file"
 )
 
 // config type

@@ -16,8 +16,8 @@ package types
 import (
 	. "github.com/pingcap/check"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/util/testleak"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/util/testleak"
 )
 
 var _ = Suite(&testFieldTypeSuite{})

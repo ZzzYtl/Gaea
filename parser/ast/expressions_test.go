@@ -16,8 +16,8 @@ package ast_test
 import (
 	. "github.com/pingcap/check"
 
-	. "github.com/XiaoMi/Gaea/parser/ast"
-	_ "github.com/XiaoMi/Gaea/parser/tidb-types/parser_driver"
+	. "github.com/ZzzYtl/MyMask/parser/ast"
+	_ "github.com/ZzzYtl/MyMask/parser/tidb-types/parser_driver"
 )
 
 var _ = Suite(&testExpressionsSuite{})

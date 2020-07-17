@@ -18,9 +18,9 @@ package ast
 import (
 	"io"
 
-	"github.com/XiaoMi/Gaea/parser/format"
-	"github.com/XiaoMi/Gaea/parser/model"
-	"github.com/XiaoMi/Gaea/parser/types"
+	"github.com/ZzzYtl/MyMask/parser/format"
+	"github.com/ZzzYtl/MyMask/parser/model"
+	"github.com/ZzzYtl/MyMask/parser/types"
 )
 
 // Node is the basic element of the AST.

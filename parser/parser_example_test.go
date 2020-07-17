@@ -16,8 +16,8 @@ package parser_test
 import (
 	"fmt"
 
-	"github.com/XiaoMi/Gaea/parser"
-	_ "github.com/XiaoMi/Gaea/parser/tidb-types/parser_driver"
+	"github.com/ZzzYtl/MyMask/parser"
+	_ "github.com/ZzzYtl/MyMask/parser/tidb-types/parser_driver"
 )
 
 // This example show how to parse a text sql into ast.

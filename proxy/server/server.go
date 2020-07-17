@@ -22,11 +22,11 @@ import (
 
 	"fmt"
 
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/models"
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/util"
-	"github.com/XiaoMi/Gaea/util/sync2"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/models"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/util"
+	"github.com/ZzzYtl/MyMask/util/sync2"
 )
 
 var (

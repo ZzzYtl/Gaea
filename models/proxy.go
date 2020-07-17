@@ -75,7 +75,7 @@ func ParseProxyConfigFromFile(cfgFile string) (*Proxy, error) {
 	err = cfg.MapTo(proxyConfig)
 	// default config type: etcd
 	if proxyConfig.ConfigType == "" {
-		proxyConfig.ConfigType = ConfigEtcd
+		proxyConfig.ConfigType = ConfigFile
 	}
 	if proxyConfig.Cluster == "" && proxyConfig.CoordinatorRoot == "" {
 		proxyConfig.Cluster = defaultGaeaCluster

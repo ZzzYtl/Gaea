@@ -25,7 +25,7 @@ import (
 
 	"github.com/pingcap/errors"
 
-	"github.com/XiaoMi/Gaea/util/hack"
+	"github.com/ZzzYtl/MyMask/util/hack"
 )
 
 // Type returns type of BinaryJSON as string.

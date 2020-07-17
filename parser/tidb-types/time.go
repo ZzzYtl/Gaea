@@ -25,10 +25,10 @@ import (
 
 	"github.com/pingcap/errors"
 
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/stmtctx"
-	"github.com/XiaoMi/Gaea/parser/terror"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/stmtctx"
+	"github.com/ZzzYtl/MyMask/parser/terror"
 )
 
 // Portable of some common call errors.

@@ -23,10 +23,10 @@ import (
 
 	"github.com/pingcap/errors"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/ast"
-	pformat "github.com/XiaoMi/Gaea/parser/format"
-	"github.com/XiaoMi/Gaea/parser/terror"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/ast"
+	pformat "github.com/ZzzYtl/MyMask/parser/format"
+	"github.com/ZzzYtl/MyMask/parser/terror"
 )
 
 const (
@@ -144,7 +144,7 @@ func (parser *Parser) ParseOneStmt(sql, charset, collation string) (ast.StmtNode
 	if len(stmts) != 1 {
 		return nil, ErrSyntax
 	}
-	ast.SetFlag(stmts[0])
+	ast.SetFlag(stmts[0]) //TOUNDER
 	return stmts[0], nil
 }
 

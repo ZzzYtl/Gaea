@@ -22,12 +22,12 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/XiaoMi/Gaea/cc"
-	"github.com/XiaoMi/Gaea/core"
+	"github.com/ZzzYtl/MyMask/cc"
+	"github.com/ZzzYtl/MyMask/core"
 
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/log/xlog"
-	"github.com/XiaoMi/Gaea/models"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/log/xlog"
+	"github.com/ZzzYtl/MyMask/models"
 )
 
 var ccConfigFile = flag.String("c", "./etc/gaea_cc.ini", "gaea cc配置")

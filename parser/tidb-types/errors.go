@@ -14,9 +14,9 @@
 package types
 
 import (
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/terror"
-	parser_types "github.com/XiaoMi/Gaea/parser/types"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/terror"
+	parser_types "github.com/ZzzYtl/MyMask/parser/types"
 )
 
 var (

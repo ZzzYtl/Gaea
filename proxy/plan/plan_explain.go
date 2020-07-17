@@ -16,12 +16,15 @@ package plan
 
 import (
 	"fmt"
-	"github.com/XiaoMi/Gaea/backend"
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/ast"
-	"github.com/XiaoMi/Gaea/proxy/router"
-	"github.com/XiaoMi/Gaea/proxy/sequence"
-	"github.com/XiaoMi/Gaea/util"
+	"github.com/ZzzYtl/MyMask/backend"
+	"github.com/ZzzYtl/MyMask/parser/ast"
+
+	//"fmt"
+	//"github.com/ZzzYtl/MyMask/backend"
+	"github.com/ZzzYtl/MyMask/mysql"
+	//"github.com/ZzzYtl/MyMask/parser/ast"
+	//"github.com/ZzzYtl/MyMask/proxy/router"
+	"github.com/ZzzYtl/MyMask/util"
 )
 
 // constants of ShardType
@@ -36,13 +39,13 @@ type ExplainPlan struct {
 	sqls      map[string]map[string][]string
 }
 
-func buildExplainPlan(stmt *ast.ExplainStmt, phyDBs map[string]string, db, sql string, r *router.Router, seq *sequence.SequenceManager) (*ExplainPlan, error) {
+func buildExplainPlan(stmt *ast.ExplainStmt, phyDBs map[string]string, db, sql string) (*ExplainPlan, error) {
 	stmtToExplain := stmt.Stmt
 	if _, ok := stmtToExplain.(*ast.ExplainStmt); ok {
 		return nil, fmt.Errorf("nested explain")
 	}
 
-	p, err := BuildPlan(stmtToExplain, phyDBs, db, sql, r, seq)
+	p, err := BuildPlan(stmtToExplain, phyDBs, db, sql)
 	if err != nil {
 		return nil, fmt.Errorf("build plan to explain error: %v", err)
 	}
@@ -50,22 +53,6 @@ func buildExplainPlan(stmt *ast.ExplainStmt, phyDBs map[string]string, db, sql s
 	ep := &ExplainPlan{}
 
 	switch pl := p.(type) {
-	case *SelectPlan:
-		ep.shardType = ShardTypeShard
-		ep.sqls = pl.sqls
-		return ep, nil
-	case *DeletePlan:
-		ep.shardType = ShardTypeShard
-		ep.sqls = pl.sqls
-		return ep, nil
-	case *UpdatePlan:
-		ep.shardType = ShardTypeShard
-		ep.sqls = pl.sqls
-		return ep, nil
-	case *InsertPlan:
-		ep.shardType = ShardTypeShard
-		ep.sqls = pl.sqls
-		return ep, nil
 	case *UnshardPlan:
 		ep.shardType = ShardTypeUnshard
 		ep.sqls = make(map[string]map[string][]string)

@@ -20,7 +20,7 @@ import (
 	. "github.com/pingcap/check"
 	"github.com/pingcap/errors"
 
-	"github.com/XiaoMi/Gaea/util/testleak"
+	"github.com/ZzzYtl/MyMask/util/testleak"
 )
 
 func TestT(t *testing.T) {

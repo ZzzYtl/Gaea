@@ -16,10 +16,10 @@ package ast
 import (
 	"github.com/pingcap/errors"
 
-	"github.com/XiaoMi/Gaea/parser/auth"
-	"github.com/XiaoMi/Gaea/parser/format"
-	"github.com/XiaoMi/Gaea/parser/model"
-	"github.com/XiaoMi/Gaea/parser/types"
+	"github.com/ZzzYtl/MyMask/parser/auth"
+	"github.com/ZzzYtl/MyMask/parser/format"
+	"github.com/ZzzYtl/MyMask/parser/model"
+	"github.com/ZzzYtl/MyMask/parser/types"
 )
 
 var (

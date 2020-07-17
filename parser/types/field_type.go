@@ -18,8 +18,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/format"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/format"
 )
 
 // UnspecifiedLength is unspecified length.

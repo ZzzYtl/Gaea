@@ -18,7 +18,7 @@ import (
 
 	. "github.com/pingcap/check"
 
-	"github.com/XiaoMi/Gaea/util/testleak"
+	"github.com/ZzzYtl/MyMask/util/testleak"
 )
 
 var _ = Suite(&testOverflowSuite{})

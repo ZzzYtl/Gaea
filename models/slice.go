@@ -18,12 +18,10 @@ import "errors"
 
 // Slice means config model of slice
 type Slice struct {
-	Name            string   `json:"name"`
-	UserName        string   `json:"user_name"`
-	Password        string   `json:"password"`
-	Master          string   `json:"master"`
-	Slaves          []string `json:"slaves"`
-	StatisticSlaves []string `json:"statistic_slaves"`
+	Name     string   `json:"name"`
+	UserName string   `json:"user_name"`
+	Password string   `json:"password"`
+	Slaves   []string `json:"slaves"`
 
 	Capacity    int `json:"capacity"`     // connection pool capacity
 	MaxCapacity int `json:"max_capacity"` // max connection pool capacity
@@ -39,8 +37,8 @@ func (s *Slice) verify() error {
 		return errors.New("missing user")
 	}
 
-	if s.Master == "" && len(s.Slaves) == 0 {
-		return errors.New("both master and slaves empty")
+	if len(s.Slaves) == 0 {
+		return errors.New("slaves empty")
 	}
 
 	for _, slave := range s.Slaves {

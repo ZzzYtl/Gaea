@@ -21,16 +21,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/XiaoMi/Gaea/backend"
-	"github.com/XiaoMi/Gaea/core/errors"
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser"
-	"github.com/XiaoMi/Gaea/parser/ast"
-	"github.com/XiaoMi/Gaea/parser/format"
-	"github.com/XiaoMi/Gaea/proxy/plan"
-	"github.com/XiaoMi/Gaea/util"
-	"github.com/XiaoMi/Gaea/util/hack"
+	"github.com/ZzzYtl/MyMask/backend"
+	"github.com/ZzzYtl/MyMask/core/errors"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser"
+	"github.com/ZzzYtl/MyMask/parser/ast"
+	"github.com/ZzzYtl/MyMask/parser/format"
+	"github.com/ZzzYtl/MyMask/proxy/plan"
+	"github.com/ZzzYtl/MyMask/util"
+	"github.com/ZzzYtl/MyMask/util/hack"
 )
 
 const (
@@ -341,11 +341,13 @@ func (se *SessionExecutor) getBackendConns(sqls map[string]map[string][]string, 
 func (se *SessionExecutor) getBackendConn(sliceName string, fromSlave bool) (pc *backend.PooledConnection, err error) {
 	if !se.isInTransaction() {
 		slice := se.GetNamespace().GetSlice(sliceName)
-		return slice.GetConn(fromSlave, se.GetNamespace().GetUserProperty(se.user))
+		return slice.GetConn(se.GetNamespace().GetUserProperty(se.user))
 	}
-	return se.getTransactionConn(sliceName)
+	//return se.getTransactionConn(sliceName)
+	return nil, errors.ErrNoMasterDB
 }
 
+/*
 func (se *SessionExecutor) getTransactionConn(sliceName string) (pc *backend.PooledConnection, err error) {
 	se.txLock.Lock()
 	defer se.txLock.Unlock()
@@ -374,6 +376,7 @@ func (se *SessionExecutor) getTransactionConn(sliceName string) (pc *backend.Poo
 
 	return
 }
+*/
 
 func (se *SessionExecutor) executeInSlice(reqCtx *util.RequestContext, pc *backend.PooledConnection, sql string) ([]*mysql.Result, error) {
 	startTime := time.Now()
@@ -675,7 +678,7 @@ func (se *SessionExecutor) rollback() (err error) {
 
 // ExecuteSQL execute sql
 func (se *SessionExecutor) ExecuteSQL(reqCtx *util.RequestContext, slice, db, sql string) (*mysql.Result, error) {
-	pc, err := se.getBackendConn("slice-0", getFromSlave(reqCtx))
+	pc, err := se.getBackendConn(slice, getFromSlave(reqCtx))
 	defer se.recycleBackendConn(pc, false)
 	if err != nil {
 		return nil, err

@@ -13,7 +13,7 @@
 
 package ast
 
-import "github.com/XiaoMi/Gaea/parser/types"
+import "github.com/ZzzYtl/MyMask/parser/types"
 
 // node is the struct implements node interface except for Accept method.
 // Node implementations should embed it in.

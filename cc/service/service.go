@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/XiaoMi/Gaea/cc/proxy"
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/models"
+	"github.com/ZzzYtl/MyMask/cc/proxy"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/models"
 )
 
 func getCoordinatorRoot(cluster string) string {

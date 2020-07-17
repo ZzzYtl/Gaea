@@ -19,9 +19,9 @@ import (
 
 	. "github.com/pingcap/check"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/terror"
-	"github.com/XiaoMi/Gaea/util/testleak"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/terror"
+	"github.com/ZzzYtl/MyMask/util/testleak"
 )
 
 func TestT(t *testing.T) {

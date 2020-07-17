@@ -21,7 +21,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/XiaoMi/Gaea/mysql"
+	"github.com/ZzzYtl/MyMask/mysql"
 )
 
 var _ = yyLexer(&Scanner{})

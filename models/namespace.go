@@ -21,9 +21,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/util"
-	"github.com/XiaoMi/Gaea/util/crypto"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/util"
+	"github.com/ZzzYtl/MyMask/util/crypto"
 )
 
 // Namespace means namespace model stored in etcd
@@ -38,7 +38,6 @@ type Namespace struct {
 	BlackSQL         []string          `json:"black_sql"`
 	AllowedIP        []string          `json:"allowed_ip"`
 	Slices           []*Slice          `json:"slices"`
-	ShardRules       []*Shard          `json:"shard_rules"`
 	Users            []*User           `json:"users"` // 客户端接入proxy用户，每个用户可以设置读写分离、读写权限等
 	DefaultSlice     string            `json:"default_slice"`
 	GlobalSequences  []*GlobalSequence `json:"global_sequences"`
@@ -86,10 +85,6 @@ func (n *Namespace) Verify() error {
 	}
 
 	if err := n.verifyDefaultSlice(); err != nil {
-		return err
-	}
-
-	if err := n.verifyShardRules(); err != nil {
 		return err
 	}
 
@@ -259,65 +254,6 @@ func (n *Namespace) verifyDefaultSlice() error {
 
 		if !exist {
 			return fmt.Errorf("invalid default slice: %s", n.DefaultSlice)
-		}
-	}
-	return nil
-}
-
-func (n *Namespace) verifyShardRules() error {
-	var sliceNames []string
-	var linkedRuleShards []*Shard
-	var rules = make(map[string]map[string]string)
-
-	for _, slice := range n.Slices {
-		sliceNames = append(sliceNames, slice.Name)
-	}
-
-	for _, s := range n.ShardRules {
-		for _, slice := range s.Slices {
-			if !includeSlice(sliceNames, slice) {
-				return fmt.Errorf("shard table[%s] slice[%s] not in the namespace.slices list:[%s]",
-					s.Table, slice, strings.Join(s.Slices, ","))
-			}
-		}
-
-		switch s.Type {
-		case ShardDefault:
-			return errors.New("[default-rule] duplicate, must only one")
-		// get index of linked table config and handle it later
-		case ShardLinked:
-			linkedRuleShards = append(linkedRuleShards, s)
-		default:
-			if err := s.verify(); err != nil {
-				return err
-			}
-		}
-
-		//if the database exist in rules
-		if _, ok := rules[s.DB]; ok {
-			if _, ok := rules[s.DB][s.Table]; ok {
-				return fmt.Errorf("table %s rule in %s duplicate", s.Table, s.DB)
-			} else {
-				rules[s.DB][s.Table] = s.Type
-			}
-		} else {
-			m := make(map[string]string)
-			rules[s.DB] = m
-			rules[s.DB][s.Table] = s.Type
-		}
-	}
-
-	for _, s := range linkedRuleShards {
-		tableRules, ok := rules[s.DB]
-		if !ok {
-			return fmt.Errorf("db of LinkedRule is not found in parent rules")
-		}
-		dbRuleType, ok := tableRules[s.ParentTable]
-		if !ok {
-			return fmt.Errorf("parent table of LinkedRule is not found in parent rules")
-		}
-		if dbRuleType == ShardLinked {
-			return fmt.Errorf("LinkedRule cannot link to another LinkedRule")
 		}
 	}
 	return nil

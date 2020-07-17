@@ -19,11 +19,11 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/XiaoMi/Gaea/backend"
-	"github.com/XiaoMi/Gaea/models"
-	"github.com/XiaoMi/Gaea/parser"
-	"github.com/XiaoMi/Gaea/proxy/router"
-	"github.com/XiaoMi/Gaea/proxy/sequence"
+	"github.com/ZzzYtl/MyMask/backend"
+	"github.com/ZzzYtl/MyMask/models"
+	"github.com/ZzzYtl/MyMask/parser"
+	"github.com/ZzzYtl/MyMask/proxy/router"
+	"github.com/ZzzYtl/MyMask/proxy/sequence"
 )
 
 type SQLTestcase struct {

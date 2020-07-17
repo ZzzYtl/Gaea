@@ -25,13 +25,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/models"
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser"
-	"github.com/XiaoMi/Gaea/stats"
-	"github.com/XiaoMi/Gaea/stats/prometheus"
-	"github.com/XiaoMi/Gaea/util"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/models"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser"
+	"github.com/ZzzYtl/MyMask/stats"
+	"github.com/ZzzYtl/MyMask/stats/prometheus"
+	"github.com/ZzzYtl/MyMask/util"
 )
 
 // LoadAndCreateManager load namespace config, and create manager
@@ -52,6 +52,7 @@ func LoadAndCreateManager(cfg *models.Proxy) (*Manager, error) {
 	return mgr, nil
 }
 
+//读取所有namespace
 func loadAllNamespace(cfg *models.Proxy) (map[string]*models.Namespace, error) {
 	// get names of all namespace
 	root := cfg.CoordinatorRoot
@@ -387,19 +388,19 @@ func (m *Manager) recordBackendConnectPoolMetrics(namespace string) {
 	}
 
 	for sliceName, slice := range ns.slices {
-		m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slice.Master.Addr(), slice.Master.InUse())
-		m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slice.Master.Addr(), slice.Master.Available())
-		m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slice.Master.Addr(), slice.Master.WaitCount())
+		//m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slice.Master.Addr(), slice.Master.InUse())
+		//m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slice.Master.Addr(), slice.Master.Available())
+		//m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slice.Master.Addr(), slice.Master.WaitCount())
 		for _, slave := range slice.Slave {
 			m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slave.Addr(), slave.InUse())
 			m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slave.Addr(), slave.Available())
 			m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slave.Addr(), slave.WaitCount())
 		}
-		for _, statisticSlave := range slice.StatisticSlave {
-			m.statistics.recordConnectPoolInuseCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.InUse())
-			m.statistics.recordConnectPoolIdleCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.Available())
-			m.statistics.recordConnectPoolWaitCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.WaitCount())
-		}
+		//for _, statisticSlave := range slice.StatisticSlave {
+		//	m.statistics.recordConnectPoolInuseCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.InUse())
+		//	m.statistics.recordConnectPoolIdleCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.Available())
+		//	m.statistics.recordConnectPoolWaitCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.WaitCount())
+		//}
 	}
 }
 
@@ -836,6 +837,6 @@ func (s *StatisticManager) recordConnectPoolInuseCount(namespace string, slice s
 
 //record wait queue length
 func (s *StatisticManager) recordConnectPoolWaitCount(namespace string, slice string, addr string, count int64) {
-	statsKey := []string{s.clusterName, namespace, slice, addr} 
+	statsKey := []string{s.clusterName, namespace, slice, addr}
 	s.backendConnectPoolWaitCounts.Set(statsKey, count)
 }

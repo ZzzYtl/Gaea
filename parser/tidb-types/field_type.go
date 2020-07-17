@@ -16,9 +16,9 @@ package types
 import (
 	"strconv"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/tidb-types/json"
-	ast "github.com/XiaoMi/Gaea/parser/types"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/tidb-types/json"
+	ast "github.com/ZzzYtl/MyMask/parser/types"
 )
 
 // UnspecifiedLength is unspecified length.

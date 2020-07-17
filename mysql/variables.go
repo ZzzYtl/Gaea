@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/XiaoMi/Gaea/core/errors"
+	"github.com/ZzzYtl/MyMask/core/errors"
 )
 
 type verifyFunc func(interface{}) error

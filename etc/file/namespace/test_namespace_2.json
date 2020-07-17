@@ -16,7 +16,7 @@
             "user_name": "test2",
             "password": "test2",
             "master": "127.0.0.1:3309",
-            "slaves": null,
+            "slaves": ["127.0.0.1:3306"],
             "statistic_slaves": null,
             "capacity": 12,
             "max_capacity": 24,

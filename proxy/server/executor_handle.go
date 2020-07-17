@@ -22,14 +22,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XiaoMi/Gaea/backend"
-	"github.com/XiaoMi/Gaea/core/errors"
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser"
-	"github.com/XiaoMi/Gaea/parser/ast"
-	"github.com/XiaoMi/Gaea/proxy/plan"
-	"github.com/XiaoMi/Gaea/util"
+	"github.com/ZzzYtl/MyMask/backend"
+	"github.com/ZzzYtl/MyMask/core/errors"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser"
+	"github.com/ZzzYtl/MyMask/parser/ast"
+	"github.com/ZzzYtl/MyMask/proxy/plan"
+	"github.com/ZzzYtl/MyMask/util"
 )
 
 // Parse parse sql
@@ -81,7 +81,7 @@ func (se *SessionExecutor) handleQuery(sql string) (r *mysql.Result, err error) 
 }
 
 func (se *SessionExecutor) doQuery(reqCtx *util.RequestContext, sql string) (*mysql.Result, error) {
-	stmtType := reqCtx.Get("stmtType").(int)
+	stmtType := reqCtx.Get(util.StmtType).(int)
 
 	if isSQLNotAllowedByUser(se, stmtType) {
 		return nil, fmt.Errorf("write DML is now allowed by read user")
@@ -157,10 +157,10 @@ func (se *SessionExecutor) getPlan(ns *Namespace, db string, sql string) (plan.P
 		return nil, fmt.Errorf("parse sql error, sql: %s, err: %v", sql, err)
 	}
 
-	rt := ns.GetRouter()
-	seq := ns.GetSequences()
+	//rt := ns.GetRouter()
+	//seq := ns.GetSequences()
 	phyDBs := ns.GetPhysicalDBs()
-	p, err := plan.BuildPlan(n, phyDBs, db, sql, rt, seq)
+	p, err := plan.BuildPlan(n, phyDBs, db, sql)
 	if err != nil {
 		return nil, fmt.Errorf("create select plan error: %v", err)
 	}
@@ -358,8 +358,8 @@ func (se *SessionExecutor) handleFieldList(data []byte) ([]*mysql.Field, error) 
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
 
-	sliceName := se.GetNamespace().GetRouter().GetRule(se.GetDatabase(), table).GetSlice(0)
-
+	//sliceName := se.GetNamespace().GetRouter().GetRule(se.GetDatabase(), table).GetSlice(0)
+	sliceName := ""
 	pc, err := se.getBackendConn(sliceName, se.GetNamespace().IsRWSplit(se.user))
 	if err != nil {
 		return nil, err

@@ -3,7 +3,7 @@
     "online": true,
     "read_only": false,
     "allowed_dbs": {
-        "sbtest1": true
+        "mysql": true
     },
     "slow_sql_time": "1000",
     "black_sql": [
@@ -13,10 +13,10 @@
     "slices": [
         {
             "name": "slice-0",
-            "user_name": "test1",
-            "password": "test1",
+            "user_name": "root",
+            "password": "123456",
             "master": "127.0.0.1:3308",
-            "slaves": null,
+            "slaves": ["127.0.0.1:3306"],
             "statistic_slaves": null,
             "capacity": 12,
             "max_capacity": 24,

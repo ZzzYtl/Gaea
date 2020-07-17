@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XiaoMi/Gaea/log"
+	"github.com/ZzzYtl/MyMask/log"
 )
 
 const (

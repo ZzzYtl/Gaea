@@ -22,15 +22,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/XiaoMi/Gaea/backend"
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/models"
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/proxy/plan"
-	"github.com/XiaoMi/Gaea/proxy/router"
-	"github.com/XiaoMi/Gaea/proxy/sequence"
-	"github.com/XiaoMi/Gaea/util"
-	"github.com/XiaoMi/Gaea/util/cache"
+	"github.com/ZzzYtl/MyMask/backend"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/models"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/proxy/plan"
+	//"github.com/ZzzYtl/MyMask/proxy/router"
+	"github.com/ZzzYtl/MyMask/util"
+	"github.com/ZzzYtl/MyMask/util/cache"
 )
 
 const (
@@ -53,14 +52,14 @@ type UserProperty struct {
 
 // Namespace is struct driected used by server
 type Namespace struct {
-	name               string
-	allowedDBs         map[string]bool
-	defaultPhyDBs      map[string]string // logicDBName-phyDBName
-	sqls               map[string]string //key: sql fingerprint
-	slowSQLTime        int64             // session slow sql time, millisecond, default 1000
-	allowips           []util.IPInfo
-	router             *router.Router
-	sequences          *sequence.SequenceManager
+	name          string
+	allowedDBs    map[string]bool
+	defaultPhyDBs map[string]string // logicDBName-phyDBName
+	sqls          map[string]string //key: sql fingerprint
+	slowSQLTime   int64             // session slow sql time, millisecond, default 1000
+	allowips      []util.IPInfo
+	//router             *router.Router
+	//sequences          *sequence.SequenceManager
 	slices             map[string]*backend.Slice // key: slice name
 	userProperties     map[string]*UserProperty  // key: user name ,value: user's properties
 	defaultCharset     string
@@ -148,24 +147,24 @@ func NewNamespace(namespaceConfig *models.Namespace) (*Namespace, error) {
 	}
 
 	// init router
-	namespace.router, err = router.NewRouter(namespaceConfig)
+	//namespace.router, err = router.NewRouter(namespaceConfig)
 	if err != nil {
 		return nil, fmt.Errorf("init router of namespace: %s failed, err: %v", namespace.name, err)
 	}
 
 	// init global sequences config
 	// 目前只支持基于mysql的序列号
-	sequences := sequence.NewSequenceManager()
-	for _, v := range namespaceConfig.GlobalSequences {
-		globalSequenceSlice, ok := namespace.slices[v.SliceName]
-		if !ok {
-			return nil, fmt.Errorf("init global sequence error: slice not found, sequence: %v", v)
-		}
-		seqName := strings.ToUpper(v.DB) + "." + strings.ToUpper(v.Table)
-		seq := sequence.NewMySQLSequence(globalSequenceSlice, seqName, v.PKName)
-		sequences.SetSequence(v.DB, v.Table, seq)
-	}
-	namespace.sequences = sequences
+	//sequences := sequence.NewSequenceManager()
+	//for _, v := range namespaceConfig.GlobalSequences {
+	//	globalSequenceSlice, ok := namespace.slices[v.SliceName]
+	//	if !ok {
+	//		return nil, fmt.Errorf("init global sequence error: slice not found, sequence: %v", v)
+	//	}
+	//	seqName := strings.ToUpper(v.DB) + "." + strings.ToUpper(v.Table)
+	//	seq := sequence.NewMySQLSequence(globalSequenceSlice, seqName, v.PKName)
+	//	sequences.SetSequence(v.DB, v.Table, seq)
+	//}
+	//namespace.sequences = sequences
 
 	return namespace, nil
 }
@@ -181,13 +180,13 @@ func (n *Namespace) GetSlice(name string) *backend.Slice {
 }
 
 // GetRouter return router of namespace
-func (n *Namespace) GetRouter() *router.Router {
-	return n.router
-}
+//func (n *Namespace) GetRouter() *router.Router {
+//	return n.router
+//}
 
-func (n *Namespace) GetSequences() *sequence.SequenceManager {
-	return n.sequences
-}
+//func (n *Namespace) GetSequences() *sequence.SequenceManager {
+//	return n.sequences
+//}
 
 // IsClientIPAllowed check ip
 func (n *Namespace) IsClientIPAllowed(clientIP net.IP) bool {
@@ -420,10 +419,10 @@ func parseSlice(cfg *models.Slice, charset string, collationID mysql.CollationID
 	s.SetCharsetInfo(charset, collationID)
 
 	// parse master
-	err = s.ParseMaster(cfg.Master)
-	if err != nil {
-		return nil, err
-	}
+	//err = s.ParseMaster(cfg.Master)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	// parse slaves
 	err = s.ParseSlave(cfg.Slaves)
@@ -432,10 +431,10 @@ func parseSlice(cfg *models.Slice, charset string, collationID mysql.CollationID
 	}
 
 	// parse statistic slaves
-	err = s.ParseStatisticSlave(cfg.StatisticSlaves)
-	if err != nil {
-		return nil, err
-	}
+	//err = s.ParseStatisticSlave(cfg.StatisticSlaves)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return s, nil
 }

@@ -17,8 +17,8 @@ package server
 import (
 	"fmt"
 
-	"github.com/XiaoMi/Gaea/log"
-	"github.com/XiaoMi/Gaea/mysql"
+	"github.com/ZzzYtl/MyMask/log"
+	"github.com/ZzzYtl/MyMask/mysql"
 )
 
 // ClientConn session client connection

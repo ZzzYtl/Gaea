@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/XiaoMi/Gaea/util/sync2"
-	"github.com/XiaoMi/Gaea/util/timer"
+	"github.com/ZzzYtl/MyMask/util/sync2"
+	"github.com/ZzzYtl/MyMask/util/timer"
 )
 
 var (

@@ -39,8 +39,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/XiaoMi/Gaea/util/bucketpool"
-	"github.com/XiaoMi/Gaea/util/sync2"
+	"github.com/ZzzYtl/MyMask/util/bucketpool"
+	"github.com/ZzzYtl/MyMask/util/sync2"
 )
 
 const (

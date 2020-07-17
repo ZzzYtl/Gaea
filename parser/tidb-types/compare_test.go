@@ -18,9 +18,9 @@ import (
 
 	. "github.com/pingcap/check"
 
-	"github.com/XiaoMi/Gaea/mysql"
-	"github.com/XiaoMi/Gaea/parser/stmtctx"
-	"github.com/XiaoMi/Gaea/util/testleak"
+	"github.com/ZzzYtl/MyMask/mysql"
+	"github.com/ZzzYtl/MyMask/parser/stmtctx"
+	"github.com/ZzzYtl/MyMask/util/testleak"
 )
 
 var _ = Suite(&testCompareSuite{})

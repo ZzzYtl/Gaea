@@ -19,8 +19,8 @@ import (
 
 	. "github.com/pingcap/check"
 
-	"github.com/XiaoMi/Gaea/parser/format"
-	"github.com/XiaoMi/Gaea/parser/tidb-types"
+	"github.com/ZzzYtl/MyMask/parser/format"
+	"github.com/ZzzYtl/MyMask/parser/tidb-types"
 )
 
 var _ = Suite(&testValueExprRestoreSuite{})

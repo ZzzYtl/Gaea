@@ -16,7 +16,7 @@ package parser
 import (
 	"strings"
 
-	"github.com/XiaoMi/Gaea/mysql"
+	"github.com/ZzzYtl/MyMask/mysql"
 )
 
 func isLetter(ch rune) bool {

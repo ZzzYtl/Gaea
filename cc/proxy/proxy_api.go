@@ -17,7 +17,7 @@ package proxy
 import (
 	"encoding/json"
 
-	"github.com/XiaoMi/Gaea/util/requests"
+	"github.com/ZzzYtl/MyMask/util/requests"
 )
 
 // APIClient api client

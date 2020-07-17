@@ -16,9 +16,9 @@ package ast_test
 import (
 	. "github.com/pingcap/check"
 
-	"github.com/XiaoMi/Gaea/parser"
-	. "github.com/XiaoMi/Gaea/parser/ast"
-	"github.com/XiaoMi/Gaea/parser/auth"
+	"github.com/ZzzYtl/MyMask/parser"
+	. "github.com/ZzzYtl/MyMask/parser/ast"
+	"github.com/ZzzYtl/MyMask/parser/auth"
 )
 
 var _ = Suite(&testMiscSuite{})
