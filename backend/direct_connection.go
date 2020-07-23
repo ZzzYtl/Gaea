@@ -13,6 +13,8 @@ import (
 	"github.com/ZzzYtl/MyMask/util/sync2"
 )
 
+var AllTableDesc = make(map[string][]string)
+
 // DirectConnection means connection to backend mysql
 type DirectConnection struct {
 	conn *mysql.Conn
@@ -54,6 +56,7 @@ func NewDirectConnection(addr string, user string, password string, db string, c
 		sessionVariables: mysql.NewSessionVariables(),
 	}
 	err := dc.connect()
+	err = dc.ScanDB()
 	return dc, err
 }
 
@@ -743,6 +746,31 @@ func (dc *DirectConnection) GetCharset() string {
 	return dc.charset
 }
 
+func (dc *DirectConnection) ScanDB() error {
+	var err error
+	dc.UseDB("mysql")
+	all_tables, err := dc.Execute("show tables")
+	if err != nil {
+		return err
+	}
+	DbDesc := make(map[string][]string)
+	for _, table := range all_tables.Values {
+		tableName := table[0].(string)
+		tableMap := make([]string, 0)
+		sql := fmt.Sprintf("desc %s", tableName)
+		tableDesc, err := dc.Execute(sql)
+		if err != nil {
+			return err
+		}
+		for _, field := range tableDesc.Values {
+			fieldName := field[0].(string)
+			tableMap = append(tableMap, fieldName)
+		}
+		DbDesc[tableName] = tableMap
+	}
+	AllTableDesc = DbDesc
+	return err
+}
 func appendSetCharset(buf *bytes.Buffer, charset string, collation string) {
 	if buf.Len() != 0 {
 		buf.WriteString(",")

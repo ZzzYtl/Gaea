@@ -523,6 +523,13 @@ func (n *SelectField) Accept(v Visitor) (Node, bool) {
 		}
 		n.Expr = node.(ExprNode)
 	}
+	if n.WildCard != nil {
+		node, ok := n.WildCard.Accept(v)
+		if !ok {
+			return n, false
+		}
+		n.WildCard = node.(*WildCardField)
+	}
 	return v.Leave(n)
 }
 

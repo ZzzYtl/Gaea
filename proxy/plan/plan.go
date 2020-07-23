@@ -16,10 +16,12 @@ package plan
 
 import (
 	"fmt"
-
+	"github.com/ZzzYtl/MyMask/backend"
 	"github.com/ZzzYtl/MyMask/mysql"
 	"github.com/ZzzYtl/MyMask/parser/ast"
 	"github.com/ZzzYtl/MyMask/util"
+	"reflect"
+	"strings"
 )
 
 // type check
@@ -84,7 +86,11 @@ func (s *Checker) Enter(n ast.Node) (node ast.Node, skipChildren bool) {
 		}
 
 		s.tableNames = append(s.tableNames, nn)
+		fmt.Printf("%v \n", reflect.TypeOf(nn))
+	default:
+		fmt.Printf("%v \n", reflect.TypeOf(nn))
 	}
+
 	return n, false
 }
 
@@ -96,6 +102,147 @@ func (s *Checker) Leave(n ast.Node) (node ast.Node, ok bool) {
 // 如果ast.TableName不带DB名, 且Session未设置DB, 则是不允许的SQL, 应该返回No database selected
 func (s *Checker) isTableNameDatabaseInvalid(n *ast.TableName) bool {
 	return s.db == "" && n.Schema.L == ""
+}
+
+type FieldRelation struct {
+	AliasField  string
+	AliasTable  string
+	OriginField string
+	OriginTable string
+}
+
+func GetAllFieldsOfTable(table string) []*FieldRelation {
+	var rst = make([]*FieldRelation, 0)
+	if v, ok := backend.AllTableDesc[table]; ok {
+		for _, field := range v {
+			rst = append(rst, &FieldRelation{
+				AliasField:  field,
+				AliasTable:  table,
+				OriginField: field,
+				OriginTable: table,
+			})
+		}
+	}
+	return rst
+}
+
+// Checker 用于检查SelectStmt是不是分表的Visitor, 以及是否包含DB信息
+type FieldsGettor struct {
+	fieldStack *util.Stack
+	curFields  []*FieldRelation
+}
+
+// NewChecker db为USE db中设置的DB名. 如果没有执行USE db, 则为空字符串
+func NewFieldGettor() *FieldsGettor {
+	return &FieldsGettor{
+		fieldStack: util.CreateStack(),
+	}
+}
+
+func (s *FieldsGettor) GetFields() []*FieldRelation {
+	return s.fieldStack.Top().([]*FieldRelation)
+}
+
+func (s *FieldsGettor) AppendFields(fieldsIn ...*FieldRelation) {
+	fieldsOut := s.fieldStack.Pop().([]*FieldRelation)
+	if fieldsOut != nil {
+		fieldsOut = append(fieldsOut, fieldsIn...)
+		s.fieldStack.Push(fieldsOut)
+	}
+}
+
+// Enter for node visit
+func (s *FieldsGettor) Enter(n ast.Node) (node ast.Node, skipChildren bool) {
+	switch nn := n.(type) {
+	case *ast.SelectStmt:
+		s.fieldStack.Push(make([]*FieldRelation, 0)) //++++++++++++++1
+	case *ast.TableSource:
+		s.fieldStack.Push(make([]*FieldRelation, 0)) //++++++++++++++2
+		//TableName,
+		//a SelectStmt, a UnionStmt, or a JoinNode.
+		switch mm := nn.Source.(type) {
+		case *ast.TableName:
+			s.AppendFields(GetAllFieldsOfTable(mm.Name.L)...)
+		case *ast.SelectStmt:
+
+		case *ast.UnionStmt:
+			//todo
+		case *ast.Join:
+			//todo
+		}
+	case *ast.FieldList:
+		s.curFields = make([]*FieldRelation, 0)
+		s.curFields = append(s.curFields, s.fieldStack.Pop().([]*FieldRelation)...)
+		s.fieldStack.Push(make([]*FieldRelation, 0))
+	case *ast.WildCardField:
+		fields := make([]*FieldRelation, 0)
+		for _, v := range s.curFields {
+			if len(nn.Table.L) == 0 || strings.EqualFold(nn.Table.L, v.AliasTable) {
+				fields = append(fields, v)
+			}
+		}
+		s.AppendFields(fields...)
+	case *ast.ColumnNameExpr:
+		tableName := nn.Name.Table.L
+		colName := nn.Name.Name.L
+		fields := &FieldRelation{
+			AliasField:  colName,
+			AliasTable:  tableName,
+			OriginField: colName,
+			OriginTable: tableName,
+		}
+		s.AppendFields(fields)
+	case *ast.OnCondition:
+		return n, true
+
+	}
+	return n, false
+}
+
+// Leave for node visit
+func (s *FieldsGettor) Leave(n ast.Node) (node ast.Node, ok bool) {
+	switch nn := n.(type) {
+	case *ast.SelectStmt: //-----------------1
+		if s.fieldStack.GetLength() > 1 {
+			fields := s.fieldStack.Pop().([]*FieldRelation)
+			if fields != nil {
+				s.AppendFields(fields...)
+			}
+		}
+	case *ast.TableSource: //------------------2
+		tableFields := s.fieldStack.Pop().([]*FieldRelation)
+		if len(nn.AsName.L) != 0 {
+			for i, _ := range tableFields {
+				tableFields[i].AliasTable = nn.AsName.L
+			}
+		}
+		s.AppendFields(tableFields...)
+		//a SelectStmt, a UnionStmt, or a JoinNode.
+		//switch mm := nn.Source.(type) {
+		//case *ast.TableName:
+		//case *ast.SelectStmt:
+		//case *ast.UnionStmt:
+		//	//todo
+		//case *ast.Join:
+		//	//todo
+		//}
+	case *ast.SelectField:
+		aliasName := nn.AsName.L
+		if len(aliasName) != 0 {
+			fieldsOut := s.fieldStack.Pop().([]*FieldRelation)
+			if fieldsOut != nil {
+				len := len(fieldsOut)
+				if len > 0 {
+					fieldsOut[len-1].AliasField = aliasName
+				}
+				s.fieldStack.Push(fieldsOut)
+			}
+		}
+	default:
+		//fmt.Printf("%v \n", reflect.TypeOf(nn))
+
+	}
+	return n, true
 }
 
 type basePlan struct{}
@@ -131,12 +278,13 @@ func BuildPlan(stmt ast.StmtNode, phyDBs map[string]string, db, sql string) (Pla
 
 	checker := NewChecker(db)
 	stmt.Accept(checker)
-
 	if checker.IsDatabaseInvalid() {
 		return nil, fmt.Errorf("no database selected") // TODO: return standard MySQL error
 	}
-
-	return CreateUnshardPlan(stmt, phyDBs, db, checker.GetUnshardTableNames())
+	gettor := NewFieldGettor()
+	stmt.Accept(gettor)
+	fields := gettor.GetFields()
+	return CreateUnshardPlan(stmt, phyDBs, db, checker.GetUnshardTableNames(), fields)
 }
 
 // NewStmtInfo constructor of StmtInfo

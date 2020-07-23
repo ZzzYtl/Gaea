@@ -16,6 +16,7 @@ package plan
 
 import (
 	"fmt"
+	"github.com/ZzzYtl/MyMask/parser/model"
 	"strings"
 
 	"github.com/ZzzYtl/MyMask/backend"
@@ -67,15 +68,101 @@ func IsSelectLastInsertIDStmt(stmt ast.StmtNode) bool {
 	return f.FnName.L == "last_insert_id"
 }
 
+func ProcessMask(n *ast.SelectStmt, fieldRealstions []*FieldRelation) {
+	if n.Fields == nil {
+		return
+	}
+
+	fields := make([]*ast.SelectField, 0)
+	for _, field := range n.Fields.Fields {
+		newFields := ProcessSelectFieldMask(field, fieldRealstions)
+		fields = append(fields, newFields...)
+	}
+	n.Fields.Fields = fields
+}
+
+func ProcessFieldMask(n ast.Node, fieldsRelation []*FieldRelation) ast.Node {
+	switch v := n.(type) {
+	case *ast.FuncCallExpr:
+		if strings.EqualFold(v.FnName.L, "left") {
+			return v
+		} else {
+			ProcessArgsMask(v.Args, fieldsRelation)
+			return v
+		}
+	case *ast.ColumnNameExpr:
+		if IsMaskField(v.Name) {
+			return PackMaskNode(v)
+		}
+		return v
+	}
+	return n
+}
+
+func ProcessSelectFieldMask(field *ast.SelectField, fieldRealstions []*FieldRelation) []*ast.SelectField {
+	var fields []*ast.SelectField
+	if field.Expr != nil {
+		field.Expr = ProcessFieldMask(field.Expr, fieldRealstions).(ast.ExprNode)
+		fields = append(fields, field)
+		return fields
+	} else if field.WildCard != nil {
+		for _, v := range fieldRealstions {
+			if len(field.WildCard.Table.L) == 0 || strings.EqualFold(v.AliasTable, field.WildCard.Table.L) {
+				newField := &ast.SelectField{}
+				newField.Expr = &ast.ColumnNameExpr{
+					Name: &ast.ColumnName{
+						Table: model.CIStr{v.AliasTable, strings.ToLower(v.AliasTable)},
+						Name:  model.CIStr{v.AliasField, strings.ToLower(v.AliasField)},
+					},
+				}
+				newFields := ProcessSelectFieldMask(newField, fieldRealstions)
+				fields = append(fields, newFields...)
+			}
+		}
+	}
+	return fields
+}
+
+func IsMaskField(Name *ast.ColumnName) bool {
+	if strings.EqualFold(Name.Name.L, "host") {
+		return true
+	}
+	return false
+}
+
+func PackMaskNode(arg ast.ExprNode) ast.ExprNode {
+	newField := &ast.FuncCallExpr{}
+	newField.FnName = model.CIStr{"Left", "left"}
+	newField.Args = append(newField.Args, arg)
+	newField.Args = append(newField.Args, ast.NewValueExpr("3"))
+	return newField
+}
+
+func ProcessArgsMask(args []ast.ExprNode, fieldsRelation []*FieldRelation) {
+	for i, arg := range args {
+		if columnExpr, ok := arg.(*ast.ColumnNameExpr); ok {
+			if IsMaskField(columnExpr.Name) {
+				args[i] = PackMaskNode(columnExpr)
+			}
+		} else {
+			args[i] = ProcessFieldMask(arg, fieldsRelation).(ast.ExprNode)
+		}
+	}
+}
+
 // CreateUnshardPlan constructor of UnshardPlan
-func CreateUnshardPlan(stmt ast.StmtNode, phyDBs map[string]string, db string, tableNames []*ast.TableName) (*UnshardPlan, error) {
+func CreateUnshardPlan(stmt ast.StmtNode, phyDBs map[string]string, db string, tableNames []*ast.TableName, fields []*FieldRelation) (*UnshardPlan, error) {
 	p := &UnshardPlan{
 		db:     db,
 		phyDBs: phyDBs,
 		stmt:   stmt,
 	}
 	rewriteUnshardTableName(phyDBs, tableNames)
+	if st, ok := stmt.(*ast.SelectStmt); ok {
+		ProcessMask(st, fields)
+	}
 	rsql, err := generateUnshardingSQL(stmt)
+	fmt.Println("==========", rsql)
 	if err != nil {
 		return nil, fmt.Errorf("generate unshardPlan SQL error: %v", err)
 	}
