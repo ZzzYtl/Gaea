@@ -55,12 +55,12 @@ func LoadAndCreateManager(cfg *models.Proxy) (*Manager, error) {
 //读取所有namespace
 func loadAllNamespace(cfg *models.Proxy) (map[string]*models.Namespace, error) {
 	// get names of all namespace
-	root := cfg.CoordinatorRoot
+	root := cfg.FileConfigPath
 	if cfg.ConfigType == models.ConfigFile {
 		root = cfg.FileConfigPath
 	}
 
-	client := models.NewClient(cfg.ConfigType, cfg.CoordinatorAddr, cfg.UserName, cfg.Password, root)
+	client := models.NewClient(cfg.ConfigType, root)
 	store := models.NewStore(client)
 	defer store.Close()
 	var err error
@@ -78,7 +78,7 @@ func loadAllNamespace(cfg *models.Proxy) (map[string]*models.Namespace, error) {
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
-			client := models.NewClient(cfg.ConfigType, cfg.CoordinatorAddr, cfg.UserName, cfg.Password, root)
+			client := models.NewClient(cfg.ConfigType, root)
 			store := models.NewStore(client)
 			defer store.Close()
 			defer wg.Done()
@@ -605,9 +605,8 @@ const (
 type StatisticManager struct {
 	manager     *Manager
 	clusterName string
-
-	statsType string // 监控后端类型
-	handlers  map[string]http.Handler
+	statsType   string // 监控后端类型
+	handlers    map[string]http.Handler
 
 	sqlTimings                *stats.MultiTimings            // SQL耗时统计
 	sqlFingerprintSlowCounts  *stats.CountersWithMultiLabels // 慢SQL指纹数量统计
@@ -638,7 +637,7 @@ func NewStatisticManager() *StatisticManager {
 func CreateStatisticManager(cfg *models.Proxy, manager *Manager) (*StatisticManager, error) {
 	mgr := NewStatisticManager()
 	mgr.manager = manager
-	mgr.clusterName = cfg.Cluster
+	mgr.clusterName = ""
 	if err := mgr.Init(cfg); err != nil {
 		return nil, err
 	}

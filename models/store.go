@@ -22,14 +22,12 @@ import (
 	"time"
 
 	"github.com/ZzzYtl/MyMask/log"
-	etcdclient "github.com/ZzzYtl/MyMask/models/etcd"
 	fileclient "github.com/ZzzYtl/MyMask/models/file"
 )
 
 // config type
 const (
 	ConfigFile = "file"
-	ConfigEtcd = "etcd"
 )
 
 // Client client interface
@@ -51,26 +49,13 @@ type Store struct {
 }
 
 // NewClient constructor to create client by case etcd/file/zk etc.
-func NewClient(configType, addr, username, password, root string) Client {
-	switch configType {
-	case ConfigFile:
-		c, err := fileclient.New(root)
-		if err != nil {
-			log.Warn("create fileclient failed, %s", addr)
-			return nil
-		}
-		return c
-	case ConfigEtcd:
-		// etcd
-		c, err := etcdclient.New(addr, time.Minute, username, password, root)
-		if err != nil {
-			log.Fatal("create etcdclient to %s failed, %v", addr, err)
-			return nil
-		}
-		return c
+func NewClient(configType, root string) Client {
+	c, err := fileclient.New(root)
+	if err != nil {
+		log.Warn("create fileclient failed")
+		return nil
 	}
-	log.Fatal("unknown config type")
-	return nil
+	return c
 }
 
 // NewStore constructor of Store

@@ -53,11 +53,7 @@ type AdminServer struct {
 	adminPassword string
 	engine        *gin.Engine
 
-	configType          string
-	coordinatorAddr     string
-	coordinatorUsername string
-	coordinatorPassword string
-	coordinatorRoot     string
+	configType string
 }
 
 // NewAdminServer create new admin server
@@ -81,10 +77,6 @@ func NewAdminServer(proxy *Server, cfg *models.Proxy) (*AdminServer, error) {
 	s.adminUser = cfg.AdminUser
 	s.adminPassword = cfg.AdminPassword
 	s.configType = cfg.ConfigType
-	s.coordinatorAddr = cfg.CoordinatorAddr
-	s.coordinatorUsername = cfg.UserName
-	s.coordinatorPassword = cfg.Password
-	s.coordinatorRoot = cfg.CoordinatorRoot
 
 	s.engine = gin.New()
 	l, err := net.Listen(cfg.ProtoType, cfg.AdminAddr)
@@ -229,24 +221,12 @@ func (s *AdminServer) registerProxy() error {
 	if s.configType == models.ConfigFile {
 		return nil
 	}
-	client := models.NewClient(models.ConfigEtcd, s.coordinatorAddr, s.coordinatorUsername, s.coordinatorPassword, s.coordinatorRoot)
-	store := models.NewStore(client)
-	defer store.Close()
-	if err := store.CreateProxy(s.model); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (s *AdminServer) unregisterProxy() error {
 	if s.configType == models.ConfigFile {
 		return nil
-	}
-	client := models.NewClient(models.ConfigEtcd, s.coordinatorAddr, s.coordinatorUsername, s.coordinatorPassword, s.coordinatorRoot)
-	store := models.NewStore(client)
-	defer store.Close()
-	if err := store.DeleteProxy(s.model.Token); err != nil {
-		return err
 	}
 	return nil
 }
@@ -261,7 +241,7 @@ func (s *AdminServer) prepareConfig(c *gin.Context) {
 		c.JSON(selfDefinedInternalError, "missing namespace name")
 		return
 	}
-	client := models.NewClient(models.ConfigEtcd, s.coordinatorAddr, s.coordinatorUsername, s.coordinatorPassword, s.coordinatorRoot)
+	client := models.NewClient(models.ConfigFile, "")
 	defer client.Close()
 	err := s.proxy.ReloadNamespacePrepare(name, client)
 	if err != nil {
