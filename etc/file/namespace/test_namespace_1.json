@@ -1,7 +1,5 @@
 {
     "name": "test_namespace_1",
-    "online": true,
-    "read_only": false,
     "allowed_dbs": {
         "mysql": true
     },

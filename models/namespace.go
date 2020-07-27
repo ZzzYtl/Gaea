@@ -28,10 +28,10 @@ import (
 
 // Namespace means namespace model stored in etcd
 type Namespace struct {
-	IsEncrypt        bool              `json:"is_encrypt"` // true: 加密存储 false: 非加密存储，目前加密Slice、User中的用户名、密码
-	Name             string            `json:"name"`
-	Online           bool              `json:"online"`
-	ReadOnly         bool              `json:"read_only"`
+	IsEncrypt bool   `json:"is_encrypt"` // true: 加密存储 false: 非加密存储，目前加密Slice、User中的用户名、密码
+	Name      string `json:"name"`
+	//Online           bool              `json:"online"`
+	//ReadOnly         bool              `json:"read_only"`
 	AllowedDBS       map[string]bool   `json:"allowed_dbs"`
 	DefaultPhyDBS    map[string]string `json:"default_phy_dbs"`
 	SlowSQLTime      string            `json:"slow_sql_time"`
