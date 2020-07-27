@@ -128,19 +128,25 @@ func GetAllFieldsOfTable(table string) []*FieldRelation {
 
 // Checker 用于检查SelectStmt是不是分表的Visitor, 以及是否包含DB信息
 type FieldsGettor struct {
-	fieldStack *util.Stack
-	curFields  []*FieldRelation
+	fieldStack       *util.Stack
+	curFields        []*FieldRelation
+	hasUnSupportFunc bool
 }
 
 // NewChecker db为USE db中设置的DB名. 如果没有执行USE db, 则为空字符串
 func NewFieldGettor() *FieldsGettor {
 	return &FieldsGettor{
-		fieldStack: util.CreateStack(),
+		fieldStack:       util.CreateStack(),
+		hasUnSupportFunc: false,
 	}
 }
 
 func (s *FieldsGettor) GetFields() []*FieldRelation {
 	return s.fieldStack.Top().([]*FieldRelation)
+}
+
+func (s *FieldsGettor) HasUnSupportFunc() bool {
+	return s.hasUnSupportFunc
 }
 
 func (s *FieldsGettor) AppendFields(fieldsIn ...*FieldRelation) {
@@ -185,16 +191,23 @@ func (s *FieldsGettor) Enter(n ast.Node) (node ast.Node, skipChildren bool) {
 	case *ast.ColumnNameExpr:
 		tableName := nn.Name.Table.L
 		colName := nn.Name.Name.L
-		fields := &FieldRelation{
-			AliasField:  colName,
-			AliasTable:  tableName,
-			OriginField: colName,
-			OriginTable: tableName,
+		for _, v := range s.curFields {
+			if (len(nn.Name.Table.L) == 0 || strings.EqualFold(tableName, v.AliasTable)) &&
+				strings.EqualFold(colName, v.AliasField) {
+				s.AppendFields(v)
+				break
+			}
 		}
-		s.AppendFields(fields)
 	case *ast.OnCondition:
 		return n, true
-
+	case *ast.AggregateFuncExpr:
+		s.hasUnSupportFunc = true
+	case *ast.WindowFuncExpr:
+		s.hasUnSupportFunc = true
+	case *ast.FuncCallExpr:
+		s.hasUnSupportFunc = true
+	case *ast.FuncCastExpr:
+		s.hasUnSupportFunc = true
 	}
 	return n, false
 }
@@ -283,6 +296,9 @@ func BuildPlan(stmt ast.StmtNode, phyDBs map[string]string, db, sql string) (Pla
 	}
 	gettor := NewFieldGettor()
 	stmt.Accept(gettor)
+	if gettor.HasUnSupportFunc() {
+		return nil, fmt.Errorf("has unsupport func")
+	}
 	fields := gettor.GetFields()
 	return CreateUnshardPlan(stmt, phyDBs, db, checker.GetUnshardTableNames(), fields)
 }
