@@ -205,7 +205,9 @@ func (s *FieldsGettor) Enter(n ast.Node) (node ast.Node, skipChildren bool) {
 	case *ast.WindowFuncExpr:
 		s.hasUnSupportFunc = true
 	case *ast.FuncCallExpr:
-		s.hasUnSupportFunc = true
+		if nn.FnName.O != "CONNECTION_ID" && nn.FnName.O != "NOW" {
+			s.hasUnSupportFunc = true
+		}
 	case *ast.FuncCastExpr:
 		s.hasUnSupportFunc = true
 	}

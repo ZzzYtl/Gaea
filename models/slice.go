@@ -18,7 +18,6 @@ import "errors"
 
 // Slice means config model of slice
 type Slice struct {
-	Name     string   `json:"name"`
 	UserName string   `json:"user_name"`
 	Password string   `json:"password"`
 	Slaves   []string `json:"slaves"`
@@ -29,10 +28,6 @@ type Slice struct {
 }
 
 func (s *Slice) verify() error {
-	if s.Name == "" {
-		return errors.New("must specify slice name")
-	}
-
 	if s.UserName == "" {
 		return errors.New("missing user")
 	}

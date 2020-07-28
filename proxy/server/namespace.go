@@ -60,8 +60,8 @@ type Namespace struct {
 	allowips      []util.IPInfo
 	//router             *router.Router
 	//sequences          *sequence.SequenceManager
-	slices             map[string]*backend.Slice // key: slice name
-	userProperties     map[string]*UserProperty  // key: user name ,value: user's properties
+	slice              *backend.Slice           // key: slice name
+	userProperties     map[string]*UserProperty // key: user name ,value: user's properties
 	defaultCharset     string
 	defaultCollationID mysql.CollationID
 
@@ -141,7 +141,7 @@ func NewNamespace(namespaceConfig *models.Namespace) (*Namespace, error) {
 	}
 
 	// init backend slices
-	namespace.slices, err = parseSlices(namespaceConfig.Slices, namespace.defaultCharset, namespace.defaultCollationID)
+	namespace.slice, err = parseSlices(namespaceConfig.Slice, namespace.defaultCharset, namespace.defaultCollationID)
 	if err != nil {
 		return nil, fmt.Errorf("init slices of namespace: %s failed, err: %v", namespaceConfig.Name, err)
 	}
@@ -175,8 +175,8 @@ func (n *Namespace) GetName() string {
 }
 
 // GetSlice return slice of namespace
-func (n *Namespace) GetSlice(name string) *backend.Slice {
-	return n.slices[name]
+func (n *Namespace) GetSlice() *backend.Slice {
+	return n.slice
 }
 
 // GetRouter return router of namespace
@@ -399,11 +399,10 @@ func (n *Namespace) Close(delay bool) {
 	if delay {
 		time.Sleep(time.Second * namespaceDelayClose)
 	}
-	for k := range n.slices {
-		err = n.slices[k].Close()
+	if n.slice != nil {
+		err = n.slice.Close()
 		if err != nil {
-			log.Warn("delay close slice: %s failed, err: %v", k, err)
-			continue
+			log.Warn("delay close slice failed, err: %v", err)
 		}
 	}
 	n.slowSQLCache.Clear()
@@ -439,23 +438,18 @@ func parseSlice(cfg *models.Slice, charset string, collationID mysql.CollationID
 	return s, nil
 }
 
-func parseSlices(cfgSlices []*models.Slice, charset string, collationID mysql.CollationID) (map[string]*backend.Slice, error) {
-	slices := make(map[string]*backend.Slice, len(cfgSlices))
-	for _, v := range cfgSlices {
-		v.Name = strings.TrimSpace(v.Name) // modify origin slice name, trim space
-		if _, ok := slices[v.Name]; ok {
-			return nil, fmt.Errorf("duplicate slice [%s]", v.Name)
-		}
-
-		s, err := parseSlice(v, charset, collationID)
+func parseSlices(cfgSlice *models.Slice, charset string, collationID mysql.CollationID) (*backend.Slice, error) {
+	var slice *backend.Slice
+	if cfgSlice != nil {
+		s, err := parseSlice(cfgSlice, charset, collationID)
 		if err != nil {
 			return nil, err
 		}
 
-		slices[v.Name] = s
+		slice = s
 	}
 
-	return slices, nil
+	return slice, nil
 }
 
 func parseAllowIps(allowedIP []string) ([]util.IPInfo, error) {

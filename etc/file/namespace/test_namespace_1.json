@@ -8,20 +8,15 @@
         ""
     ],
     "allowed_ip": null,
-    "slices": [
+    "db": 
         {
-            "name": "slice-0",
             "user_name": "root",
             "password": "123456",
-            "master": "127.0.0.1:3308",
             "slaves": ["127.0.0.1:3306"],
-            "statistic_slaves": null,
             "capacity": 12,
             "max_capacity": 24,
             "idle_timeout": 60
-        }
-    ],
-    "shard_rules": null,
+        },
     "users": [
         {
             "user_name": "front_user1",
@@ -31,7 +26,5 @@
             "rw_split": 1,
             "other_property": 0
         }
-    ],
-    "default_slice": "slice-0",
-    "global_sequences": null
+    ]
 }

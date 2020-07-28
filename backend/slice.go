@@ -63,11 +63,6 @@ type Slice struct {
 	collationID mysql.CollationID
 }
 
-// GetSliceName return name of slice
-func (s *Slice) GetSliceName() string {
-	return s.Cfg.Name
-}
-
 // GetConn get backend connection from different node based on fromSlave and userType
 func (s *Slice) GetConn(userType int) (pc *PooledConnection, err error) {
 	pc, err = s.GetSlaveConn()

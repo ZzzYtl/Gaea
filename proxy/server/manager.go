@@ -387,21 +387,21 @@ func (m *Manager) recordBackendConnectPoolMetrics(namespace string) {
 		return
 	}
 
-	for sliceName, slice := range ns.slices {
-		//m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slice.Master.Addr(), slice.Master.InUse())
-		//m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slice.Master.Addr(), slice.Master.Available())
-		//m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slice.Master.Addr(), slice.Master.WaitCount())
-		for _, slave := range slice.Slave {
-			m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slave.Addr(), slave.InUse())
-			m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slave.Addr(), slave.Available())
-			m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slave.Addr(), slave.WaitCount())
-		}
-		//for _, statisticSlave := range slice.StatisticSlave {
-		//	m.statistics.recordConnectPoolInuseCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.InUse())
-		//	m.statistics.recordConnectPoolIdleCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.Available())
-		//	m.statistics.recordConnectPoolWaitCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.WaitCount())
-		//}
-	}
+	//for sliceName, slice := range ns.slices {
+	//	//m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slice.Master.Addr(), slice.Master.InUse())
+	//	//m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slice.Master.Addr(), slice.Master.Available())
+	//	//m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slice.Master.Addr(), slice.Master.WaitCount())
+	//	for _, slave := range slice.Slave {
+	//		m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slave.Addr(), slave.InUse())
+	//		m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slave.Addr(), slave.Available())
+	//		m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slave.Addr(), slave.WaitCount())
+	//	}
+	//	//for _, statisticSlave := range slice.StatisticSlave {
+	//	//	m.statistics.recordConnectPoolInuseCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.InUse())
+	//	//	m.statistics.recordConnectPoolIdleCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.Available())
+	//	//	m.statistics.recordConnectPoolWaitCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.WaitCount())
+	//	//}
+	//}
 }
 
 // NamespaceManager is the manager that holds all namespaces

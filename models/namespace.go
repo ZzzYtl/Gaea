@@ -28,21 +28,20 @@ import (
 
 // Namespace means namespace model stored in etcd
 type Namespace struct {
-	IsEncrypt bool   `json:"is_encrypt"` // true: 加密存储 false: 非加密存储，目前加密Slice、User中的用户名、密码
-	Name      string `json:"name"`
+	Name string `json:"name"`
 	//Online           bool              `json:"online"`
 	//ReadOnly         bool              `json:"read_only"`
-	AllowedDBS       map[string]bool   `json:"allowed_dbs"`
-	DefaultPhyDBS    map[string]string `json:"default_phy_dbs"`
-	SlowSQLTime      string            `json:"slow_sql_time"`
-	BlackSQL         []string          `json:"black_sql"`
-	AllowedIP        []string          `json:"allowed_ip"`
-	Slices           []*Slice          `json:"slices"`
-	Users            []*User           `json:"users"` // 客户端接入proxy用户，每个用户可以设置读写分离、读写权限等
-	DefaultSlice     string            `json:"default_slice"`
-	GlobalSequences  []*GlobalSequence `json:"global_sequences"`
-	DefaultCharset   string            `json:"default_charset"`
-	DefaultCollation string            `json:"default_collation"`
+	AllowedDBS    map[string]bool   `json:"allowed_dbs"`
+	DefaultPhyDBS map[string]string `json:"default_phy_dbs"`
+	SlowSQLTime   string            `json:"slow_sql_time"`
+	BlackSQL      []string          `json:"black_sql"`
+	AllowedIP     []string          `json:"allowed_ip"`
+	Slice         *Slice            `json:"db"`
+	Users         []*User           `json:"users"` // 客户端接入proxy用户，每个用户可以设置读写分离、读写权限等
+	//DefaultSlice     string            `json:"default_slice"`
+	//GlobalSequences  []*GlobalSequence `json:"global_sequences"`
+	DefaultCharset   string `json:"default_charset"`
+	DefaultCollation string `json:"default_collation"`
 }
 
 // Encode encode json
@@ -81,10 +80,6 @@ func (n *Namespace) Verify() error {
 	}
 
 	if err := n.verifySlices(); err != nil {
-		return err
-	}
-
-	if err := n.verifyDefaultSlice(); err != nil {
 		return err
 	}
 
@@ -223,47 +218,22 @@ func (n *Namespace) verifySlices() error {
 }
 
 func (n *Namespace) isSlicesEmpty() bool {
-	return len(n.Slices) == 0
+	return n.Slice == nil
 }
 
 func (n *Namespace) verifyEachSlice() error {
-	for i, slice := range n.Slices {
-		if err := slice.verify(); err != nil {
-			return fmt.Errorf("slice cfg error, namespace: %s, err: %s", n.Name, err.Error())
-		}
-
-		//check repeat slice
-		for j := 0; j < i; j++ {
-			if n.Slices[j].Name == slice.Name {
-				return fmt.Errorf("slice name duped, namespace: %s, slice: %s", n.Name, slice.Name)
-			}
-		}
+	if n.isSlicesEmpty() {
+		return fmt.Errorf("slice cfg error, namespace: %s, slice is nil", n.Name)
 	}
-	return nil
-}
-
-func (n *Namespace) verifyDefaultSlice() error {
-	if n.DefaultSlice != "" {
-		exist := false
-		for _, slice := range n.Slices {
-			if slice.Name == n.DefaultSlice {
-				exist = true
-				break
-			}
-		}
-
-		if !exist {
-			return fmt.Errorf("invalid default slice: %s", n.DefaultSlice)
-		}
+	if err := n.Slice.verify(); err != nil {
+		return fmt.Errorf("slice cfg error, namespace: %s, err: %s", n.Name, err.Error())
 	}
 	return nil
 }
 
 // Decrypt decrypt user/password in namespace
 func (n *Namespace) Decrypt(key string) (err error) {
-	if !n.IsEncrypt {
-		return nil
-	}
+	return nil
 	// Users
 	for i := range n.Users {
 		n.Users[i].UserName, err = decrypt(key, n.Users[i].UserName)
@@ -276,45 +246,45 @@ func (n *Namespace) Decrypt(key string) (err error) {
 		}
 	}
 	// Slices
-	for i := range n.Slices {
-		n.Slices[i].UserName, err = decrypt(key, n.Slices[i].UserName)
-		if err != nil {
-			return
-		}
-		n.Slices[i].Password, err = decrypt(key, n.Slices[i].Password)
-		if err != nil {
-			return
-		}
-	}
+	//for i := range n.Slices {
+	//	n.Slices[i].UserName, err = decrypt(key, n.Slices[i].UserName)
+	//	if err != nil {
+	//		return
+	//	}
+	//	n.Slices[i].Password, err = decrypt(key, n.Slices[i].Password)
+	//	if err != nil {
+	//		return
+	//	}
+	//}
 
 	return nil
 }
 
 // Encrypt encrypt user/password in namespace
 func (n *Namespace) Encrypt(key string) (err error) {
-	n.IsEncrypt = true
-	// Users
-	for i := range n.Users {
-		n.Users[i].UserName, err = encrypt(key, n.Users[i].UserName)
-		if err != nil {
-			return
-		}
-		n.Users[i].Password, err = encrypt(key, n.Users[i].Password)
-		if err != nil {
-			return
-		}
-	}
-	// Slices
-	for i := range n.Slices {
-		n.Slices[i].UserName, err = encrypt(key, n.Slices[i].UserName)
-		if err != nil {
-			return
-		}
-		n.Slices[i].Password, err = encrypt(key, n.Slices[i].Password)
-		if err != nil {
-			return
-		}
-	}
+	//n.IsEncrypt = true
+	//// Users
+	//for i := range n.Users {
+	//	n.Users[i].UserName, err = encrypt(key, n.Users[i].UserName)
+	//	if err != nil {
+	//		return
+	//	}
+	//	n.Users[i].Password, err = encrypt(key, n.Users[i].Password)
+	//	if err != nil {
+	//		return
+	//	}
+	//}
+	//// Slices
+	//for i := range n.Slices {
+	//	n.Slices[i].UserName, err = encrypt(key, n.Slices[i].UserName)
+	//	if err != nil {
+	//		return
+	//	}
+	//	n.Slices[i].Password, err = encrypt(key, n.Slices[i].Password)
+	//	if err != nil {
+	//		return
+	//	}
+	//}
 
 	return nil
 }

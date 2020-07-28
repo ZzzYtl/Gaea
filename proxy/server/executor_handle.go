@@ -358,9 +358,7 @@ func (se *SessionExecutor) handleFieldList(data []byte) ([]*mysql.Field, error) 
 	table := string(data[0:index])
 	wildcard := string(data[index+1:])
 
-	//sliceName := se.GetNamespace().GetRouter().GetRule(se.GetDatabase(), table).GetSlice(0)
-	sliceName := ""
-	pc, err := se.getBackendConn(sliceName, se.GetNamespace().IsRWSplit(se.user))
+	pc, err := se.getBackendConn(se.GetNamespace().IsRWSplit(se.user))
 	if err != nil {
 		return nil, err
 	}

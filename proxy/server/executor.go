@@ -329,7 +329,7 @@ func (se *SessionExecutor) getBackendConns(sqls map[string]map[string][]string, 
 	pcs = make(map[string]*backend.PooledConnection)
 	for sliceName := range sqls {
 		var pc *backend.PooledConnection
-		pc, err = se.getBackendConn(sliceName, fromSlave)
+		pc, err = se.getBackendConn(fromSlave)
 		if err != nil {
 			return
 		}
@@ -338,9 +338,9 @@ func (se *SessionExecutor) getBackendConns(sqls map[string]map[string][]string, 
 	return
 }
 
-func (se *SessionExecutor) getBackendConn(sliceName string, fromSlave bool) (pc *backend.PooledConnection, err error) {
+func (se *SessionExecutor) getBackendConn(fromSlave bool) (pc *backend.PooledConnection, err error) {
 	if !se.isInTransaction() {
-		slice := se.GetNamespace().GetSlice(sliceName)
+		slice := se.GetNamespace().GetSlice()
 		return slice.GetConn(se.GetNamespace().GetUserProperty(se.user))
 	}
 	//return se.getTransactionConn(sliceName)
@@ -678,7 +678,7 @@ func (se *SessionExecutor) rollback() (err error) {
 
 // ExecuteSQL execute sql
 func (se *SessionExecutor) ExecuteSQL(reqCtx *util.RequestContext, slice, db, sql string) (*mysql.Result, error) {
-	pc, err := se.getBackendConn(slice, getFromSlave(reqCtx))
+	pc, err := se.getBackendConn(getFromSlave(reqCtx))
 	defer se.recycleBackendConn(pc, false)
 	if err != nil {
 		return nil, err
