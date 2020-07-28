@@ -26,4 +26,5 @@ require (
 	github.com/sirupsen/logrus v1.4.2 // indirect
 	github.com/tdewolff/minify v2.3.6+incompatible // indirect
 	github.com/tdewolff/parse v2.3.4+incompatible // indirect
+	golang.org/x/text v0.3.2
 )

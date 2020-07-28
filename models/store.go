@@ -171,3 +171,49 @@ func (s *Store) ListProxyMonitorMetrics() (map[string]*ProxyMonitorMetric, error
 	}
 	return proxy, nil
 }
+
+// NamespaceBase return namespace path base
+func (s *Store) WhiteListBase() string {
+	return filepath.Join(s.prefix, "whitelist")
+}
+
+// NamespacePath concat namespace path
+func (s *Store) WhiteListPath(name string) string {
+	return filepath.Join(s.prefix, "whitelist", name)
+}
+
+// ListNamespace list namespace
+func (s *Store) ListWhiteList() ([]string, error) {
+	files, err := s.client.List(s.WhiteListBase())
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(files); i++ {
+		tmp := strings.Split(files[i], "/")
+		files[i] = tmp[len(tmp)-1]
+	}
+	return files, nil
+}
+
+// LoadNamespace load namespace value
+func (s *Store) LoadWhiteList(key, name string) (*WhiteList, error) {
+	b, err := s.client.Read(s.NamespacePath(name))
+	if err != nil {
+		return nil, err
+	}
+
+	if b == nil {
+		return nil, fmt.Errorf("node %s not exists", s.NamespacePath(name))
+	}
+
+	p := &WhiteList{Name: name}
+	if err = json.Unmarshal(b, &p.Records); err != nil {
+		return nil, err
+	}
+
+	if err = p.Verify(); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}

@@ -29,8 +29,8 @@ import (
 	"github.com/ZzzYtl/MyMask/proxy/server"
 )
 
-var configFile = flag.String("config", "etc/gaea.ini", "gaea config file")
-var info = flag.Bool("info", false, "show info of gaea")
+var configFile = flag.String("config", "etc/mymask.ini", "mymask config file")
+var info = flag.Bool("info", false, "show info of mymask")
 
 func main() {
 	flag.Parse()

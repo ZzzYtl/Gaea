@@ -43,7 +43,13 @@ func LoadAndCreateManager(cfg *models.Proxy) (*Manager, error) {
 
 	}
 
-	mgr, err := CreateManager(cfg, namespaceConfigs)
+	whiteListConfigs, err := loadAllWhiteListConfig(cfg)
+	if err != nil {
+		log.Warn("init whitelist manager failed, %v", err)
+		return nil, err
+	}
+
+	mgr, err := CreateManager(cfg, namespaceConfigs, whiteListConfigs)
 	if err != nil {
 		log.Warn("create manager error: %v", err)
 		return nil, err
@@ -125,12 +131,86 @@ func loadAllNamespace(cfg *models.Proxy) (map[string]*models.Namespace, error) {
 	return namespaceModels, nil
 }
 
+//读取所有白名单
+func loadAllWhiteListConfig(cfg *models.Proxy) (map[string]*models.WhiteList, error) {
+	// get names of all namespace
+	root := cfg.FileConfigPath
+
+	client := models.NewClient(cfg.ConfigType, root)
+	store := models.NewStore(client)
+	defer store.Close()
+	var err error
+	var whiteLists []string
+	whiteLists, err = store.ListWhiteList()
+	if err != nil {
+		log.Warn("list whitelist failed, err: %v", err)
+		return nil, err
+	}
+
+	// query remote namespace models in worker goroutines
+	whiteC := make(chan string)
+	whiteListC := make(chan *models.WhiteList)
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			client := models.NewClient(cfg.ConfigType, root)
+			store := models.NewStore(client)
+			defer store.Close()
+			defer wg.Done()
+			for white := range whiteC {
+				whiteList, e := store.LoadWhiteList(cfg.EncryptKey, white)
+				if e != nil {
+					log.Warn("load whitelist %s failed, err: %v", white, err)
+					// assign extent err out of this scope
+					err = e
+					return
+				}
+				// verify namespace config
+				e = whiteList.Verify()
+				if e != nil {
+					log.Warn("verify namespace %s failed, err: %v", white, e)
+					err = e
+					return
+				}
+				whiteListC <- whiteList
+			}
+		}()
+	}
+
+	// dispatch goroutine
+	go func() {
+		for _, white := range whiteLists {
+			whiteC <- white
+		}
+		close(whiteC)
+		wg.Wait()
+		close(whiteListC)
+	}()
+
+	// collect all namespaces
+	whitelistModels := make(map[string]*models.WhiteList, 64)
+	for whitelist := range whiteListC {
+		whitelistModels[whitelist.Name] = whitelist
+	}
+	if err != nil {
+		log.Warn("get whitelist failed, err:%v", err)
+		return nil, err
+	}
+
+	return whitelistModels, nil
+}
+
 // Manager contains namespace manager and user manager
 type Manager struct {
 	switchIndex util.BoolIndex
 	namespaces  [2]*NamespaceManager
 	users       [2]*UserManager
-	statistics  *StatisticManager
+	//databases	[2]*DataBaseManager
+	//maskRules   [2]*MaskRules
+	whiteList [2]*WhiteListManager
+
+	statistics *StatisticManager
 }
 
 // NewManager return empty Manager
@@ -139,7 +219,8 @@ func NewManager() *Manager {
 }
 
 // CreateManager create manager
-func CreateManager(cfg *models.Proxy, namespaceConfigs map[string]*models.Namespace) (*Manager, error) {
+func CreateManager(cfg *models.Proxy, namespaceConfigs map[string]*models.Namespace,
+	whitelistConfigs map[string]*models.WhiteList) (*Manager, error) {
 	m := NewManager()
 
 	// init statistics
@@ -154,7 +235,8 @@ func CreateManager(cfg *models.Proxy, namespaceConfigs map[string]*models.Namesp
 
 	// init namespace
 	m.namespaces[current] = CreateNamespaceManager(namespaceConfigs)
-
+	m.whiteList[current] = CreateWhiteListManager(whitelistConfigs)
+	m.rules[current]
 	// init user
 	user, err := CreateUserManager(namespaceConfigs)
 	if err != nil {
@@ -479,6 +561,32 @@ func (n *NamespaceManager) ConfigFingerprint() string {
 		h.Write(n.GetNamespace(k).DumpToJSON())
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// NamespaceManager is the manager that holds all namespaces
+type WhiteListManager struct {
+	whitelists map[string]*WhiteList
+}
+
+// NewNamespaceManager constructor of NamespaceManager
+func NewWhiteListManager() *WhiteListManager {
+	return &WhiteListManager{
+		whitelists: make(map[string]*WhiteList, 64),
+	}
+}
+
+// CreateNamespaceManager create NamespaceManager
+func CreateWhiteListManager(whitelistConfigs map[string]*models.WhiteList) *WhiteListManager {
+	nsMgr := NewWhiteListManager()
+	for _, config := range whitelistConfigs {
+		whitelist, err := NewWhiteList(config)
+		if err != nil {
+			log.Warn("create whitelist %s failed, err: %v", config.Name, err)
+			continue
+		}
+		nsMgr.whitelists[whitelist.name] = whitelist
+	}
+	return nsMgr
 }
 
 // UserManager means user for auth
