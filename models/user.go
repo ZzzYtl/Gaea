@@ -41,12 +41,12 @@ const (
 
 // User meand user struct
 type User struct {
-	UserName      string `json:"user_name"`
-	Password      string `json:"password"`
-	Namespace     string `json:"namespace"`
-	RWFlag        int    `json:"rw_flag"`        //1: 只读 2:读写
-	RWSplit       int    `json:"rw_split"`       //0: 不采用读写分离 1:读写分离
-	OtherProperty int    `json:"other_property"` // 1:统计用户
+	UserName  string `json:"user_name"`
+	Password  string `json:"password"`
+	Namespace string `json:"namespace"`
+	//RWFlag        int    `json:"rw_flag"`        //1: 只读 2:读写
+	//RWSplit       int    `json:"rw_split"`       //0: 不采用读写分离 1:读写分离
+	//OtherProperty int    `json:"other_property"` // 1:统计用户
 }
 
 func (p *User) verify() error {
@@ -65,17 +65,17 @@ func (p *User) verify() error {
 	}
 	p.Password = strings.TrimSpace(p.Password)
 
-	if p.RWFlag != ReadOnly && p.RWFlag != ReadWrite {
-		return fmt.Errorf("invalid RWFlag, user: %s, rwflag: %d", p.UserName, p.RWFlag)
-	}
+	//if p.RWFlag != ReadOnly && p.RWFlag != ReadWrite {
+	//	return fmt.Errorf("invalid RWFlag, user: %s, rwflag: %d", p.UserName, p.RWFlag)
+	//}
+	//
+	//if p.RWSplit != NoReadWriteSplit && p.RWSplit != ReadWriteSplit {
+	//	return fmt.Errorf("invalid RWSplit, user: %s, rwsplit: %d", p.UserName, p.RWSplit)
+	//}
 
-	if p.RWSplit != NoReadWriteSplit && p.RWSplit != ReadWriteSplit {
-		return fmt.Errorf("invalid RWSplit, user: %s, rwsplit: %d", p.UserName, p.RWSplit)
-	}
-
-	if p.OtherProperty != StatisticUser && p.OtherProperty != 0 {
-		return fmt.Errorf("invalid other property, user: %s, %d", p.UserName, p.OtherProperty)
-	}
+	//if p.OtherProperty != StatisticUser && p.OtherProperty != 0 {
+	//	return fmt.Errorf("invalid other property, user: %s, %d", p.UserName, p.OtherProperty)
+	//}
 
 	return nil
 }

@@ -566,9 +566,9 @@ func canExecuteFromSlave(c *SessionExecutor, sql string) bool {
 
 // 如果是只读用户, 且SQL是INSERT, UPDATE, DELETE, 则拒绝执行, 返回true
 func isSQLNotAllowedByUser(c *SessionExecutor, stmtType int) bool {
-	if c.GetNamespace().IsAllowWrite(c.user) {
-		return false
-	}
+	//if c.GetNamespace().IsAllowWrite(c.user) {
+	//	return false
+	//}
 
 	return stmtType == parser.StmtDelete || stmtType == parser.StmtInsert || stmtType == parser.StmtUpdate
 }

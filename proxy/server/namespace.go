@@ -136,7 +136,7 @@ func NewNamespace(namespaceConfig *models.Namespace) (*Namespace, error) {
 
 	// init user properties
 	for _, user := range namespaceConfig.Users {
-		up := &UserProperty{RWFlag: user.RWFlag, RWSplit: user.RWSplit, OtherProperty: user.OtherProperty}
+		up := &UserProperty{}
 		namespace.userProperties[user.UserName] = up
 	}
 
@@ -217,7 +217,8 @@ func (n *Namespace) IsRWSplit(user string) bool {
 
 // IsStatisticUser check if user is used to statistic
 func (n *Namespace) IsStatisticUser(user string) bool {
-	return n.userProperties[user].OtherProperty == models.StatisticUser
+	//return n.userProperties[user].OtherProperty == models.StatisticUser
+	return false
 }
 
 // GetUserProperty return user information
