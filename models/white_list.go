@@ -6,11 +6,11 @@ type WhiteList struct {
 }
 
 type WhiteListRecord struct {
-	IpList   string `json:"ipList"`
-	User     string `json:"user"`
-	FromTime string `json:"fromTime"`
-	ToTime   string `json:"toTime"`
-	Rules    string `json:"rules"`
+	IpList   []string `json:"ipList"`
+	User     string   `json:"user"`
+	FromTime string   `json:"fromTime"`
+	ToTime   string   `json:"toTime"`
+	Rules    string   `json:"rules"`
 }
 
 // Encode encode json

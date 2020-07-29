@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Rule length="3">
+  <Filter name="testrule2" desc="" enable="1">
+    <Matcher type="any"/>
+    <Action type="mask">
+      <Casesensitive tableCasesensitive="0" colCasesensitive="0"/>
+      <Mask schemaName="&quot;test&quot;" table_name="&quot;customer&quot;" databasename="test" column_name="&quot;mobile&quot;" template="常量替换手机号码1-3位" dataType="手机号" function="MASK_CELLPHONE_NUMBER_AREACODE" useTemplate="0"/>
+    </Action>
+  </Filter>
+  <Filter name="test111" desc="" enable="1">
+    <Matcher type="any"/>
+    <Action type="mask">
+      <Casesensitive tableCasesensitive="0" colCasesensitive="0"/>
+      <Mask schemaName="&quot;test&quot;" table_name="&quot;darkindustry_mobile_info_17&quot;" databasename="test" column_name="&quot;mobile&quot;" template="常量替换手机号码前4-7位" dataType="手机号" function="MASK_CELLPHONE_NUMBER_OPERATOR" useTemplate="0"/>
+    </Action>
+  </Filter>
+  <Filter name="testaaaa" desc="" enable="1">
+    <Matcher type="any"/>
+    <Action type="mask">
+      <Casesensitive tableCasesensitive="0" colCasesensitive="0"/>
+      <Mask schemaName="&quot;test&quot;" table_name="&quot;darkindustry_mobile_info_13&quot;" databasename="test" column_name="&quot;mobile&quot;" template="常量替换手机号码前4-7位" dataType="手机号" function="MASK_CELLPHONE_NUMBER_OPERATOR" useTemplate="0"/>
+    </Action>
+  </Filter>
+</Rule>

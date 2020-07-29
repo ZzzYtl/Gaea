@@ -16,6 +16,7 @@ package models
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -174,12 +175,12 @@ func (s *Store) ListProxyMonitorMetrics() (map[string]*ProxyMonitorMetric, error
 
 // NamespaceBase return namespace path base
 func (s *Store) WhiteListBase() string {
-	return filepath.Join(s.prefix, "whitelist")
+	return filepath.Join(s.prefix, "white_list")
 }
 
 // NamespacePath concat namespace path
 func (s *Store) WhiteListPath(name string) string {
-	return filepath.Join(s.prefix, "whitelist", name)
+	return filepath.Join(s.prefix, "white_list", name)
 }
 
 // ListNamespace list namespace
@@ -197,7 +198,7 @@ func (s *Store) ListWhiteList() ([]string, error) {
 
 // LoadNamespace load namespace value
 func (s *Store) LoadWhiteList(key, name string) (*WhiteList, error) {
-	b, err := s.client.Read(s.NamespacePath(name))
+	b, err := s.client.Read(s.WhiteListPath(name))
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +209,62 @@ func (s *Store) LoadWhiteList(key, name string) (*WhiteList, error) {
 
 	p := &WhiteList{Name: name}
 	if err = json.Unmarshal(b, &p.Records); err != nil {
+		return nil, err
+	}
+
+	if err = p.Verify(); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+// NamespaceBase return namespace path base
+func (s *Store) RuleListBase() string {
+	return filepath.Join(s.prefix, "rule")
+}
+
+// NamespacePath concat namespace path
+func (s *Store) RuleListPath(name string) string {
+	return filepath.Join(s.prefix, "rule", name)
+}
+
+// LoadNamespace load namespace value
+func (s *Store) LoadRuleLists() (*RuleList, error) {
+	name := "mysql_rules.xml"
+	b, err := s.client.Read(s.RuleListPath(name))
+	if err != nil {
+		return nil, err
+	}
+
+	if b == nil {
+		return nil, fmt.Errorf("node %s not exists", s.NamespacePath(name))
+	}
+	p := &RuleList{}
+	if err = xml.Unmarshal(b, &p); err != nil {
+		return nil, err
+	}
+
+	if err = p.Verify(); err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+// LoadNamespace load namespace value
+func (s *Store) LoadRule(key, name string) (*FilterList, error) {
+	b, err := s.client.Read(s.RuleListPath(name))
+	if err != nil {
+		return nil, err
+	}
+
+	if b == nil {
+		return nil, fmt.Errorf("node %s not exists", s.NamespacePath(name))
+	}
+
+	p := &FilterList{}
+	if err = xml.Unmarshal(b, &p); err != nil {
 		return nil, err
 	}
 

@@ -49,7 +49,13 @@ func LoadAndCreateManager(cfg *models.Proxy) (*Manager, error) {
 		return nil, err
 	}
 
-	mgr, err := CreateManager(cfg, namespaceConfigs, whiteListConfigs)
+	rulesConfigs, err := loadAllRulesConfig(cfg)
+	if err != nil {
+		log.Warn("init maskrules manager failed, %v", err)
+		return nil, err
+	}
+
+	mgr, err := CreateManager(cfg, namespaceConfigs, whiteListConfigs, rulesConfigs)
 	if err != nil {
 		log.Warn("create manager error: %v", err)
 		return nil, err
@@ -201,16 +207,83 @@ func loadAllWhiteListConfig(cfg *models.Proxy) (map[string]*models.WhiteList, er
 	return whitelistModels, nil
 }
 
+//读取所有白名单
+func loadAllRulesConfig(cfg *models.Proxy) (map[string]*models.FilterList, error) {
+	// get names of all namespace
+	root := cfg.FileConfigPath
+
+	client := models.NewClient(cfg.ConfigType, root)
+	store := models.NewStore(client)
+	defer store.Close()
+	ruleList, err := store.LoadRuleLists()
+	if err != nil {
+		log.Warn("list rulelist failed, err: %v", err)
+		return nil, err
+	}
+
+	// query remote namespace models in worker goroutines
+	ruleC := make(chan models.RuleListRecord)
+	filterListC := make(chan *models.FilterList)
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			client := models.NewClient(cfg.ConfigType, root)
+			store := models.NewStore(client)
+			defer store.Close()
+			defer wg.Done()
+			for rule := range ruleC {
+				filterList, e := store.LoadRule(cfg.EncryptKey, rule.FileName)
+				if e != nil {
+					log.Warn("load filter %s failed, err: %v", rule.FileName, err)
+					// assign extent err out of this scope
+					err = e
+					return
+				}
+				// verify namespace config
+				e = filterList.Verify()
+				if e != nil {
+					log.Warn("verify filter %s failed, err: %v", rule, e)
+					err = e
+					return
+				}
+				filterList.Name = rule.Name
+				filterListC <- filterList
+			}
+		}()
+	}
+
+	// dispatch goroutine
+	go func() {
+		for _, rule := range ruleList.Records {
+			ruleC <- rule
+		}
+		close(ruleC)
+		wg.Wait()
+		close(filterListC)
+	}()
+
+	// collect all namespaces
+	filterlistModels := make(map[string]*models.FilterList, 64)
+	for filterlist := range filterListC {
+		filterlistModels[filterlist.Name] = filterlist
+	}
+	if err != nil {
+		log.Warn("get filterlist failed, err:%v", err)
+		return nil, err
+	}
+
+	return filterlistModels, nil
+}
+
 // Manager contains namespace manager and user manager
 type Manager struct {
 	switchIndex util.BoolIndex
 	namespaces  [2]*NamespaceManager
 	users       [2]*UserManager
-	//databases	[2]*DataBaseManager
-	//maskRules   [2]*MaskRules
-	whiteList [2]*WhiteListManager
-
-	statistics *StatisticManager
+	whiteList   [2]*WhiteListManager
+	rules       [2]*RuleManager
+	statistics  *StatisticManager
 }
 
 // NewManager return empty Manager
@@ -219,8 +292,10 @@ func NewManager() *Manager {
 }
 
 // CreateManager create manager
-func CreateManager(cfg *models.Proxy, namespaceConfigs map[string]*models.Namespace,
-	whitelistConfigs map[string]*models.WhiteList) (*Manager, error) {
+func CreateManager(cfg *models.Proxy,
+	namespaceConfigs map[string]*models.Namespace,
+	whitelistConfigs map[string]*models.WhiteList,
+	filetrlistConfigs map[string]*models.FilterList) (*Manager, error) {
 	m := NewManager()
 
 	// init statistics
@@ -236,7 +311,7 @@ func CreateManager(cfg *models.Proxy, namespaceConfigs map[string]*models.Namesp
 	// init namespace
 	m.namespaces[current] = CreateNamespaceManager(namespaceConfigs)
 	m.whiteList[current] = CreateWhiteListManager(whitelistConfigs)
-	m.rules[current]
+	m.rules[current] = CreateRuleManager(filetrlistConfigs)
 	// init user
 	user, err := CreateUserManager(namespaceConfigs)
 	if err != nil {
@@ -468,22 +543,6 @@ func (m *Manager) recordBackendConnectPoolMetrics(namespace string) {
 		log.Warn("record backend connect pool metrics err, namespace: %s", namespace)
 		return
 	}
-
-	//for sliceName, slice := range ns.slices {
-	//	//m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slice.Master.Addr(), slice.Master.InUse())
-	//	//m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slice.Master.Addr(), slice.Master.Available())
-	//	//m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slice.Master.Addr(), slice.Master.WaitCount())
-	//	for _, slave := range slice.Slave {
-	//		m.statistics.recordConnectPoolInuseCount(namespace, sliceName, slave.Addr(), slave.InUse())
-	//		m.statistics.recordConnectPoolIdleCount(namespace, sliceName, slave.Addr(), slave.Available())
-	//		m.statistics.recordConnectPoolWaitCount(namespace, sliceName, slave.Addr(), slave.WaitCount())
-	//	}
-	//	//for _, statisticSlave := range slice.StatisticSlave {
-	//	//	m.statistics.recordConnectPoolInuseCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.InUse())
-	//	//	m.statistics.recordConnectPoolIdleCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.Available())
-	//	//	m.statistics.recordConnectPoolWaitCount(namespace, sliceName, statisticSlave.Addr(), statisticSlave.WaitCount())
-	//	//}
-	//}
 }
 
 // NamespaceManager is the manager that holds all namespaces
@@ -587,6 +646,32 @@ func CreateWhiteListManager(whitelistConfigs map[string]*models.WhiteList) *Whit
 		nsMgr.whitelists[whitelist.name] = whitelist
 	}
 	return nsMgr
+}
+
+// NamespaceManager is the manager that holds all namespaces
+type RuleManager struct {
+	rulelists map[string]*RuleList
+}
+
+// NewNamespaceManager constructor of NamespaceManager
+func NewRuleManager() *RuleManager {
+	return &RuleManager{
+		rulelists: make(map[string]*RuleList, 64),
+	}
+}
+
+// CreateNamespaceManager create NamespaceManager
+func CreateRuleManager(filterConfigs map[string]*models.FilterList) *RuleManager {
+	ruleMgr := NewRuleManager()
+	for _, config := range filterConfigs {
+		rulelist, err := NewRuleList(config)
+		if err != nil {
+			log.Warn("create whitelist %s failed, err: %v", config.Name, err)
+			continue
+		}
+		ruleMgr.rulelists[rulelist.name] = rulelist
+	}
+	return ruleMgr
 }
 
 // UserManager means user for auth

@@ -9,7 +9,7 @@ type WhiteList struct {
 
 func NewWhiteList(config *models.WhiteList) (*WhiteList, error) {
 	whitelist := &WhiteList{name: config.Name}
-
+	whitelist.whitelist = make(map[string]*models.WhiteListRecord, 64)
 	for _, v := range config.Records {
 		whiteRecord := &models.WhiteListRecord{
 			IpList:   v.IpList,
