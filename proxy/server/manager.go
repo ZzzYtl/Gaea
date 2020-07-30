@@ -55,7 +55,13 @@ func LoadAndCreateManager(cfg *models.Proxy) (*Manager, error) {
 		return nil, err
 	}
 
-	mgr, err := CreateManager(cfg, namespaceConfigs, whiteListConfigs, rulesConfigs)
+	databaseConfigs, err := loadDataBaseConfig(cfg)
+	if err != nil {
+		log.Warn("init database manager failed %v", err)
+		return nil, err
+	}
+
+	mgr, err := CreateManager(cfg, namespaceConfigs, whiteListConfigs, rulesConfigs, databaseConfigs)
 	if err != nil {
 		log.Warn("create manager error: %v", err)
 		return nil, err
@@ -276,6 +282,38 @@ func loadAllRulesConfig(cfg *models.Proxy) (map[string]*models.FilterList, error
 	return filterlistModels, nil
 }
 
+//读取所有白名单
+func loadDataBaseConfig(cfg *models.Proxy) (map[models.DBKey]*models.DataBase, error) {
+	// get names of all namespace
+	root := cfg.FileConfigPath
+
+	client := models.NewClient(cfg.ConfigType, root)
+	store := models.NewStore(client)
+	defer store.Close()
+	var err error
+	databaseList, err := store.LoadDataBases()
+	if err != nil {
+		log.Warn("load databaselist failed, err: %v", err)
+		return nil, err
+	}
+
+	// collect all namespaces
+	dblistModels := make(map[models.DBKey]*models.DataBase, 64)
+	for _, db := range databaseList {
+		dblistModels[models.DBKey{
+			Ip:   db.IP,
+			Port: db.Port,
+			Db:   db.DatabaseName,
+		}] = &db
+	}
+	if err != nil {
+		log.Warn("get dblist failed, err:%v", err)
+		return nil, err
+	}
+
+	return dblistModels, nil
+}
+
 // Manager contains namespace manager and user manager
 type Manager struct {
 	switchIndex util.BoolIndex
@@ -283,6 +321,7 @@ type Manager struct {
 	users       [2]*UserManager
 	whiteList   [2]*WhiteListManager
 	rules       [2]*RuleManager
+	dbs         [2]*DBManager
 	statistics  *StatisticManager
 }
 
@@ -295,7 +334,8 @@ func NewManager() *Manager {
 func CreateManager(cfg *models.Proxy,
 	namespaceConfigs map[string]*models.Namespace,
 	whitelistConfigs map[string]*models.WhiteList,
-	filetrlistConfigs map[string]*models.FilterList) (*Manager, error) {
+	filetrlistConfigs map[string]*models.FilterList,
+	dbConfigs map[models.DBKey]*models.DataBase) (*Manager, error) {
 	m := NewManager()
 
 	// init statistics
@@ -312,6 +352,7 @@ func CreateManager(cfg *models.Proxy,
 	m.namespaces[current] = CreateNamespaceManager(namespaceConfigs)
 	m.whiteList[current] = CreateWhiteListManager(whitelistConfigs)
 	m.rules[current] = CreateRuleManager(filetrlistConfigs)
+	m.dbs[current] = CreateDBManager(dbConfigs)
 	// init user
 	user, err := CreateUserManager(namespaceConfigs)
 	if err != nil {
@@ -672,6 +713,32 @@ func CreateRuleManager(filterConfigs map[string]*models.FilterList) *RuleManager
 		ruleMgr.rulelists[rulelist.name] = rulelist
 	}
 	return ruleMgr
+}
+
+// NamespaceManager is the manager that holds all namespaces
+type DBManager struct {
+	dbs map[models.DBKey]*DataBase
+}
+
+// NewNamespaceManager constructor of NamespaceManager
+func NewDBManager() *DBManager {
+	return &DBManager{
+		dbs: make(map[models.DBKey]*DataBase, 64),
+	}
+}
+
+// CreateNamespaceManager create NamespaceManager
+func CreateDBManager(dbConfigs map[models.DBKey]*models.DataBase) *DBManager {
+	dbMgr := NewDBManager()
+	for k, config := range dbConfigs {
+		db, err := NewDB(config)
+		if err != nil {
+			log.Warn("create db %v failed, err: %v", k, err)
+			continue
+		}
+		dbMgr.dbs[k] = db
+	}
+	return dbMgr
 }
 
 // UserManager means user for auth

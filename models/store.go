@@ -204,7 +204,7 @@ func (s *Store) LoadWhiteList(key, name string) (*WhiteList, error) {
 	}
 
 	if b == nil {
-		return nil, fmt.Errorf("node %s not exists", s.NamespacePath(name))
+		return nil, fmt.Errorf("node %s not exists", s.WhiteListPath(name))
 	}
 
 	p := &WhiteList{Name: name}
@@ -238,7 +238,7 @@ func (s *Store) LoadRuleLists() (*RuleList, error) {
 	}
 
 	if b == nil {
-		return nil, fmt.Errorf("node %s not exists", s.NamespacePath(name))
+		return nil, fmt.Errorf("node %s not exists", s.RuleListPath(name))
 	}
 	p := &RuleList{}
 	if err = xml.Unmarshal(b, &p); err != nil {
@@ -260,7 +260,7 @@ func (s *Store) LoadRule(key, name string) (*FilterList, error) {
 	}
 
 	if b == nil {
-		return nil, fmt.Errorf("node %s not exists", s.NamespacePath(name))
+		return nil, fmt.Errorf("node %s not exists", s.RuleListPath(name))
 	}
 
 	p := &FilterList{}
@@ -273,4 +273,37 @@ func (s *Store) LoadRule(key, name string) (*FilterList, error) {
 	}
 
 	return p, nil
+}
+
+// NamespaceBase return namespace path base
+func (s *Store) DBBase() string {
+	return filepath.Join(s.prefix, "rule")
+}
+
+// NamespacePath concat namespace path
+func (s *Store) DBPath(name string) string {
+	return filepath.Join(s.prefix, "rule", name)
+}
+
+// LoadNamespace load namespace value
+func (s *Store) LoadDataBases() ([]DataBase, error) {
+	name := "databases.xml"
+	b, err := s.client.Read(s.DBPath(name))
+	if err != nil {
+		return nil, err
+	}
+
+	if b == nil {
+		return nil, fmt.Errorf("node %s not exists", s.DBPath(name))
+	}
+	p := &DataBases{}
+	if err = xml.Unmarshal(b, &p); err != nil {
+		return nil, err
+	}
+
+	if err = p.Verify(); err != nil {
+		return nil, err
+	}
+
+	return p.DBS, nil
 }
