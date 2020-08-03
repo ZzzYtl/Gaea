@@ -300,11 +300,11 @@ func loadDataBaseConfig(cfg *models.Proxy) (map[models.DBKey]*models.DataBase, e
 	// collect all namespaces
 	dblistModels := make(map[models.DBKey]*models.DataBase, 64)
 	for _, db := range databaseList {
+		newDb := db
 		dblistModels[models.DBKey{
-			Ip:   db.IP,
-			Port: db.Port,
-			Db:   db.DatabaseName,
-		}] = &db
+			Addr: db.IP + ":" + strconv.Itoa(db.Port),
+			Db:   db.MaskDatabaseName,
+		}] = &newDb
 	}
 	if err != nil {
 		log.Warn("get dblist failed, err:%v", err)
@@ -413,6 +413,20 @@ func (m *Manager) ReloadNamespaceCommit(name string) error {
 	return nil
 }
 
+// ReloadNamespaceCommit commit config
+func (m *Manager) ReloadAllNamespaceCommit() error {
+	current, _, index := m.switchIndex.Get()
+
+	allNamespaces := m.namespaces[current].GetNamespaces()
+	for _, currentNamespace := range allNamespaces {
+		if currentNamespace != nil {
+			go currentNamespace.Close(true)
+		}
+	}
+	m.switchIndex.Set(!index)
+	return nil
+}
+
 // DeleteNamespace delete namespace
 func (m *Manager) DeleteNamespace(name string) error {
 	current, other, index := m.switchIndex.Get()
@@ -444,10 +458,40 @@ func (m *Manager) DeleteNamespace(name string) error {
 	return nil
 }
 
+func (m *Manager) ReloadAllPrepare(namespaceConfigs map[string]*models.Namespace,
+	whitelistConfigs map[string]*models.WhiteList,
+	filetrlistConfigs map[string]*models.FilterList,
+	dbConfigs map[models.DBKey]*models.DataBase) error {
+	_, other, _ := m.switchIndex.Get()
+
+	// reload namespace prepare
+	m.namespaces[other] = CreateNamespaceManager(namespaceConfigs)
+	m.whiteList[other] = CreateWhiteListManager(whitelistConfigs)
+	m.rules[other] = CreateRuleManager(filetrlistConfigs)
+	m.dbs[other] = CreateDBManager(dbConfigs)
+	// init user
+	user, err := CreateUserManager(namespaceConfigs)
+	if err != nil {
+		return err
+	}
+	m.users[other] = user
+	return nil
+}
+
 // GetNamespace return specific namespace
 func (m *Manager) GetNamespace(name string) *Namespace {
 	current, _, _ := m.switchIndex.Get()
 	return m.namespaces[current].GetNamespace(name)
+}
+
+func (m *Manager) GetDataBase(key models.DBKey) *DataBase {
+	current, _, _ := m.switchIndex.Get()
+	return m.dbs[current].GetDataBase(key)
+}
+
+func (m *Manager) GetRule(rule string) *RuleList {
+	current, _, _ := m.switchIndex.Get()
+	return m.rules[current].GetRule(rule)
 }
 
 // CheckUser check if user in users
@@ -586,6 +630,44 @@ func (m *Manager) recordBackendConnectPoolMetrics(namespace string) {
 	}
 }
 
+func (m *Manager) GetMaskRule(namespace, db, user string) (*map[util.RuleKey]string, error) {
+	ns := m.GetNamespace(namespace)
+	if ns == nil {
+		return nil, fmt.Errorf("cant find namespace:%s", namespace)
+	}
+	slice := ns.GetSlice()
+	if slice == nil {
+		return nil, fmt.Errorf("cant find slice")
+	}
+
+	pc, err := slice.GetConn(0)
+	if err != nil {
+		return nil, err
+	}
+	addr := pc.GetAddr()
+	database := m.GetDataBase(models.DBKey{
+		Addr: addr,
+		Db:   db,
+	})
+	if database == nil {
+		return nil, fmt.Errorf("cant find database(%s:%s)", addr, db)
+	}
+	ruleList := m.GetRule(database.Rule)
+	if ruleList == nil {
+		return nil, fmt.Errorf("cant find rule:%s", database.Rule)
+	}
+
+	ruleMap := make(map[util.RuleKey]string)
+
+	for _, v := range ruleList.rulelist {
+		ruleMap[util.RuleKey{
+			Table: v.Action.Mask.TableName,
+			Col:   v.Action.Mask.ColName,
+		}] = v.Action.Mask.Function
+	}
+	return &ruleMap, nil
+}
+
 // NamespaceManager is the manager that holds all namespaces
 type NamespaceManager struct {
 	namespaces map[string]*Namespace
@@ -701,6 +783,13 @@ func NewRuleManager() *RuleManager {
 	}
 }
 
+func (mgr *RuleManager) GetRule(rule string) *RuleList {
+	if r, ok := mgr.rulelists[rule]; ok {
+		return r
+	}
+	return nil
+}
+
 // CreateNamespaceManager create NamespaceManager
 func CreateRuleManager(filterConfigs map[string]*models.FilterList) *RuleManager {
 	ruleMgr := NewRuleManager()
@@ -739,6 +828,13 @@ func CreateDBManager(dbConfigs map[models.DBKey]*models.DataBase) *DBManager {
 		dbMgr.dbs[k] = db
 	}
 	return dbMgr
+}
+
+func (mgr *DBManager) GetDataBase(key models.DBKey) *DataBase {
+	if p, ok := mgr.dbs[key]; ok {
+		return p
+	}
+	return nil
 }
 
 // UserManager means user for auth

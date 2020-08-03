@@ -52,14 +52,12 @@ type UserProperty struct {
 
 // Namespace is struct driected used by server
 type Namespace struct {
-	name          string
-	allowedDBs    map[string]bool
-	defaultPhyDBs map[string]string // logicDBName-phyDBName
-	sqls          map[string]string //key: sql fingerprint
-	slowSQLTime   int64             // session slow sql time, millisecond, default 1000
-	allowips      []util.IPInfo
-	//router             *router.Router
-	//sequences          *sequence.SequenceManager
+	name               string
+	allowedDBs         map[string]bool
+	defaultPhyDBs      map[string]string // logicDBName-phyDBName
+	sqls               map[string]string //key: sql fingerprint
+	slowSQLTime        int64             // session slow sql time, millisecond, default 1000
+	allowips           []util.IPInfo
 	slice              *backend.Slice           // key: slice name
 	userProperties     map[string]*UserProperty // key: user name ,value: user's properties
 	defaultCharset     string

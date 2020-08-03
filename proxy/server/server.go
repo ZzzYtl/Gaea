@@ -16,17 +16,19 @@ package server
 
 import (
 	"net"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"time"
 
 	"fmt"
-
 	"github.com/ZzzYtl/MyMask/log"
 	"github.com/ZzzYtl/MyMask/models"
 	"github.com/ZzzYtl/MyMask/mysql"
 	"github.com/ZzzYtl/MyMask/util"
 	"github.com/ZzzYtl/MyMask/util/sync2"
+	"github.com/howeyc/fsnotify"
 )
 
 var (
@@ -42,7 +44,10 @@ type Server struct {
 	tw             *util.TimeWheel
 	adminServer    *AdminServer
 	manager        *Manager
+	cfg            *models.Proxy
 	EncryptKey     string
+	watcher        *fsnotify.Watcher
+	pipe           map[interface{}]chan interface{}
 }
 
 // NewServer create new server
@@ -52,9 +57,9 @@ func NewServer(cfg *models.Proxy, manager *Manager) (*Server, error) {
 
 	// init key
 	s.EncryptKey = cfg.EncryptKey
-
+	s.cfg = cfg
 	s.manager = manager
-
+	s.pipe = make(map[interface{}]chan interface{}, 64)
 	// if error occurs, recycle the resources during creation.
 	defer func() {
 		if e := recover(); e != nil {
@@ -93,7 +98,30 @@ func NewServer(cfg *models.Proxy, manager *Manager) (*Server, error) {
 		return nil, err
 	}
 	s.adminServer = adminServer
-
+	s.watcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal("new file watcher fail")
+		return nil, err
+	}
+	err = filepath.Walk(cfg.FileConfigPath, func(path string, info os.FileInfo, err error) error {
+		//这里判断是否为目录，只需监控目录即可
+		//目录下的文件也在监控范围内，不需要我们一个一个加
+		if info.IsDir() {
+			path, err := filepath.Abs(path)
+			if err != nil {
+				return err
+			}
+			err = s.watcher.Watch(path)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Fatal(fmt.Sprintf("watcher file(%s) error, quit. error: %s", cfg.FileConfigPath, err.Error()))
+		return nil, err
+	}
 	log.Notice("server start succ, netProtoType: %s, addr: %s", cfg.ProtoType, cfg.ProxyAddr)
 	return s, nil
 }
@@ -135,7 +163,7 @@ func (s *Server) onConn(c net.Conn) {
 
 	// added into time wheel
 	s.tw.Add(s.sessionTimeout, cc, cc.Close)
-
+	s.pipe[cc] = cc.pipe
 	cc.Run()
 }
 
@@ -143,7 +171,7 @@ func (s *Server) onConn(c net.Conn) {
 func (s *Server) Run() error {
 	// start AdminServer first
 	go s.adminServer.Run()
-
+	go s.CheckConfig()
 	// start Server
 	s.closed.Set(false)
 	for s.closed.Get() != true {
@@ -174,6 +202,72 @@ func (s *Server) Close() error {
 	}
 
 	s.manager.Close()
+	return nil
+}
+
+func (s *Server) CheckConfig() {
+	for {
+		select {
+		case <-s.watcher.Event:
+			if s.ReloadCfgPrepare() == nil {
+				s.ReloadCfgCommit()
+			}
+		case err := <-s.watcher.Error:
+			log.Warn("error:", err)
+		}
+	}
+}
+
+func (s *Server) ReloadCfgPrepare() error {
+	log.Notice("prepare config of all begin")
+	namespaceConfigs, err := loadAllNamespace(s.cfg)
+	if err != nil {
+		log.Warn("reload namespace cfg failed, %v", err)
+		return err
+	}
+
+	whiteListConfigs, err := loadAllWhiteListConfig(s.cfg)
+	if err != nil {
+		log.Warn("reload whitelist cfg failed, %v", err)
+		return err
+	}
+
+	rulesConfigs, err := loadAllRulesConfig(s.cfg)
+	if err != nil {
+		log.Warn("reload maskrules cfg failed, %v", err)
+		return err
+	}
+
+	databaseConfigs, err := loadDataBaseConfig(s.cfg)
+	if err != nil {
+		log.Warn("reload database cfg failed %v", err)
+		return err
+	}
+
+	err = s.manager.ReloadAllPrepare(namespaceConfigs, whiteListConfigs, rulesConfigs, databaseConfigs)
+	if err != nil {
+		log.Warn("reload manager error: %v", err)
+		return err
+	}
+	log.Notice("prepare config end")
+	return nil
+}
+
+func (s *Server) ReloadCfgCommit() error {
+	log.Notice("commit config  begin")
+	defer func() {
+		recover()
+	}()
+	if err := s.manager.ReloadAllNamespaceCommit(); err != nil {
+		log.Warn("Manager ReloadNamespaceCommit error: %v", err)
+		return err
+	}
+
+	for _, c := range s.pipe {
+		c <- nil
+	}
+
+	log.Notice("commit config end")
 	return nil
 }
 

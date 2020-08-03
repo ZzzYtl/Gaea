@@ -42,10 +42,11 @@ const (
 type SessionExecutor struct {
 	manager *Manager
 
-	namespace string
-	user      string
-	db        string
-
+	namespace    string
+	user         string
+	db           string
+	maskRule     *map[util.RuleKey]string
+	tableDesc    *map[string][]string
 	status       uint16
 	lastInsertID uint64
 

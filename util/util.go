@@ -67,3 +67,8 @@ func Int2TimeDuration(t int) (time.Duration, error) {
 	}
 	return idleTimeout, nil
 }
+
+type RuleKey struct {
+	Table string
+	Col   string
+}

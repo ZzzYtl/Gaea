@@ -50,6 +50,8 @@ type Session struct {
 	executor *SessionExecutor
 
 	closed atomic.Value
+
+	pipe chan interface{}
 }
 
 // create session between client<->proxy
@@ -70,7 +72,7 @@ func newSession(s *Server, co net.Conn) *Session {
 	cc.c.SetConnectionID(atomic.AddUint32(&baseConnID, 1))
 
 	cc.executor = newSessionExecutor(s.manager)
-
+	cc.pipe = make(chan interface{}, 1)
 	cc.closed.Store(false)
 
 	return cc
@@ -216,12 +218,19 @@ func (cc *Session) Run() {
 		}
 		cc.Close()
 		cc.proxy.tw.Remove(cc)
+		close(cc.pipe)
 		cc.manager.GetStatisticManager().DescSessionCount(cc.namespace)
 	}()
 
 	cc.manager.GetStatisticManager().IncrSessionCount(cc.namespace)
 
 	for !cc.IsClosed() {
+		select {
+		case <-cc.pipe:
+			cc.executor.handleUseDB(cc.executor.db)
+		default:
+		}
+
 		cc.c.SetSequence(0)
 		data, err := cc.c.ReadEphemeralPacket()
 		if err != nil {

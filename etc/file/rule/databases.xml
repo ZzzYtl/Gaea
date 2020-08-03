@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <Databases> 
-  <Database name="test" type="MYSQL" version="5.7" address="123.58.255.115" addressType="IPV4" port="3306" user_name="test" password="1F08E3D17861D922" app_link="0" database_name="" mask_database_name="test" proxyPort="3311" case_sensitive="0" dbproxy_mask="on" rac="0" slave="0">
+  <Database name="mysql" type="MYSQL" version="5.7" address="127.0.0.1" addressType="IPV4" port="3306" user_name="test" password="1F08E3D17861D922" app_link="0" database_name="" mask_database_name="mysql" proxyPort="3311" case_sensitive="0" dbproxy_mask="on" rac="0" slave="0">
     <Whitelist file="./white_list/wl3311.json"/>
     <Security rule="test"/>
   </Database>
-  <Database name="test2" type="MYSQL" version="5.7" address="123.58.255.115" addressType="IPV4" port="3306" user_name="test" password="1F08E3D17861D922" app_link="0" database_name="" mask_database_name="test" proxyPort="3312" case_sensitive="1" dbproxy_mask="on" rac="0" slave="0">
+  <Database name="test2" type="MYSQL" version="5.7" address="123.58.255.115" addressType="IPV4" port="3306" user_name="test" password="1F08E3D17861D922" app_link="0" database_name="" mask_database_name="mysql" proxyPort="3312" case_sensitive="1" dbproxy_mask="on" rac="0" slave="0">
     <Whitelist file="./white_list/wl3312.json"/>
     <Security rule="test2"/>
   </Database>

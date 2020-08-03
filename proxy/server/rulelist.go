@@ -11,7 +11,8 @@ func NewRuleList(config *models.FilterList) (*RuleList, error) {
 	rulelist := &RuleList{name: config.Name}
 	rulelist.rulelist = make(map[string]*models.Filter, 64)
 	for _, v := range config.Filters {
-		rulelist.rulelist[v.Name] = &v
+		newV := v
+		rulelist.rulelist[v.Name] = &newV
 	}
 	return rulelist, nil
 }

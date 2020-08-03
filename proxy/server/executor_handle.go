@@ -138,6 +138,31 @@ func (se *SessionExecutor) handleQueryWithoutPlan(reqCtx *util.RequestContext, s
 	}
 }
 
+func (se *SessionExecutor) ScanDB() error {
+	var err error
+	all_tables, err := se.handleQuery("show tables")
+	if err != nil {
+		return err
+	}
+	tableDesc := make(map[string][]string)
+	se.tableDesc = &tableDesc
+	for _, table := range all_tables.Values {
+		tableName := table[0].(string)
+		tableMap := make([]string, 0)
+		sql := fmt.Sprintf("show columns in %s", tableName)
+		tableDesc, err := se.handleQuery(sql)
+		if err != nil {
+			return err
+		}
+		for _, field := range tableDesc.Values {
+			fieldName := field[0].(string)
+			tableMap = append(tableMap, fieldName)
+		}
+		(*se.tableDesc)[tableName] = tableMap
+	}
+	return err
+}
+
 func (se *SessionExecutor) handleUseDB(dbName string) error {
 	if len(dbName) == 0 {
 		return fmt.Errorf("must have database, the length of dbName is zero")
@@ -145,6 +170,10 @@ func (se *SessionExecutor) handleUseDB(dbName string) error {
 
 	if se.GetNamespace().IsAllowedDB(dbName) {
 		se.db = dbName
+		if rule, err := se.manager.GetMaskRule(se.namespace, se.db, se.user); err == nil {
+			se.maskRule = rule
+		}
+		se.ScanDB()
 		return nil
 	}
 
@@ -160,7 +189,7 @@ func (se *SessionExecutor) getPlan(ns *Namespace, db string, sql string) (plan.P
 	//rt := ns.GetRouter()
 	//seq := ns.GetSequences()
 	phyDBs := ns.GetPhysicalDBs()
-	p, err := plan.BuildPlan(n, phyDBs, db, sql)
+	p, err := plan.BuildPlan(n, phyDBs, db, sql, se.maskRule, se.tableDesc)
 	if err != nil {
 		return nil, fmt.Errorf("create select plan error: %v", err)
 	}

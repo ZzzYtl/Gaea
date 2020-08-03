@@ -3,8 +3,7 @@ package models
 import "encoding/xml"
 
 type DBKey struct {
-	Ip   string
-	Port int
+	Addr string
 	Db   string
 }
 
@@ -13,22 +12,22 @@ type DataBases struct {
 }
 
 type DataBase struct {
-	MaskDatabaseName string     `xml:"mask_database_name"`
-	DatabaseName     string     `xml:database_name`
-	IP               string     `xml:"address"`
-	Port             int        `xml:"port"`
-	UserName         string     `xml:"user_name"`
-	PW               string     `xml:"password"`
+	MaskDatabaseName string     `xml:"mask_database_name,attr"`
+	DatabaseName     string     `xml:database_name,attr`
+	IP               string     `xml:"address,attr"`
+	Port             int        `xml:"port,attr"`
+	UserName         string     `xml:"user_name,attr"`
+	PW               string     `xml:"password,attr"`
 	WhiteList        WhiteListR `xml:"Whitelist"`
 	Security         SecurityR  `xml:"Security"`
 }
 
 type WhiteListR struct {
-	File string `xml:"file, attr"`
+	File string `xml:"file,attr"`
 }
 
 type SecurityR struct {
-	Rule string `xml:"file, attr"`
+	Rule string `xml:"rule,attr"`
 }
 
 // Encode encode json

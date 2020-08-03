@@ -91,8 +91,8 @@ func ProcessFieldMask(n ast.Node, fieldsRelation []*FieldRelation) ast.Node {
 			return v
 		}
 	case *ast.ColumnNameExpr:
-		if IsMaskField(v.Name) {
-			return PackMaskNode(v)
+		if maskFunc, ok := IsMaskField(v.Name, fieldsRelation); ok {
+			return PackMaskNode(v, maskFunc)
 		}
 		return v
 	}
@@ -123,26 +123,30 @@ func ProcessSelectFieldMask(field *ast.SelectField, fieldRealstions []*FieldRela
 	return fields
 }
 
-func IsMaskField(Name *ast.ColumnName) bool {
-	if strings.EqualFold(Name.Name.L, "host") {
-		return true
+func IsMaskField(Name *ast.ColumnName, fields []*FieldRelation) (string, bool) {
+	for _, v := range fields {
+		if strings.EqualFold(Name.Name.L, v.AliasField) &&
+			strings.EqualFold(Name.Table.L, v.AliasTable) {
+			if v.IsMaskField {
+				return v.MaskFunc, true
+			}
+		}
 	}
-	return false
+	return "", false
 }
 
-func PackMaskNode(arg ast.ExprNode) ast.ExprNode {
+func PackMaskNode(arg ast.ExprNode, maskFunc string) ast.ExprNode {
 	newField := &ast.FuncCallExpr{}
-	newField.FnName = model.CIStr{"Left", "left"}
+	newField.FnName = model.CIStr{maskFunc, maskFunc}
 	newField.Args = append(newField.Args, arg)
-	newField.Args = append(newField.Args, ast.NewValueExpr("3"))
 	return newField
 }
 
 func ProcessArgsMask(args []ast.ExprNode, fieldsRelation []*FieldRelation) {
 	for i, arg := range args {
 		if columnExpr, ok := arg.(*ast.ColumnNameExpr); ok {
-			if IsMaskField(columnExpr.Name) {
-				args[i] = PackMaskNode(columnExpr)
+			if maskFunc, ok := IsMaskField(columnExpr.Name, fieldsRelation); ok {
+				args[i] = PackMaskNode(columnExpr, maskFunc)
 			}
 		} else {
 			args[i] = ProcessFieldMask(arg, fieldsRelation).(ast.ExprNode)

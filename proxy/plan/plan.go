@@ -16,7 +16,6 @@ package plan
 
 import (
 	"fmt"
-	"github.com/ZzzYtl/MyMask/backend"
 	"github.com/ZzzYtl/MyMask/mysql"
 	"github.com/ZzzYtl/MyMask/parser/ast"
 	"github.com/ZzzYtl/MyMask/util"
@@ -109,11 +108,30 @@ type FieldRelation struct {
 	AliasTable  string
 	OriginField string
 	OriginTable string
+	IsMaskField bool
+	MaskFunc    string
 }
 
-func GetAllFieldsOfTable(table string) []*FieldRelation {
+// Checker 用于检查SelectStmt是不是分表的Visitor, 以及是否包含DB信息
+type FieldsGettor struct {
+	fieldStack       *util.Stack
+	curFields        []*FieldRelation
+	hasUnSupportFunc bool
+	tableDesc        *map[string][]string
+}
+
+// NewChecker db为USE db中设置的DB名. 如果没有执行USE db, 则为空字符串
+func NewFieldGettor(td *map[string][]string) *FieldsGettor {
+	return &FieldsGettor{
+		fieldStack:       util.CreateStack(),
+		hasUnSupportFunc: false,
+		tableDesc:        td,
+	}
+}
+
+func (s *FieldsGettor) GetAllFieldsOfTable(table string) []*FieldRelation {
 	var rst = make([]*FieldRelation, 0)
-	if v, ok := backend.AllTableDesc[table]; ok {
+	if v, ok := (*s.tableDesc)[table]; ok {
 		for _, field := range v {
 			rst = append(rst, &FieldRelation{
 				AliasField:  field,
@@ -126,23 +144,12 @@ func GetAllFieldsOfTable(table string) []*FieldRelation {
 	return rst
 }
 
-// Checker 用于检查SelectStmt是不是分表的Visitor, 以及是否包含DB信息
-type FieldsGettor struct {
-	fieldStack       *util.Stack
-	curFields        []*FieldRelation
-	hasUnSupportFunc bool
-}
-
-// NewChecker db为USE db中设置的DB名. 如果没有执行USE db, 则为空字符串
-func NewFieldGettor() *FieldsGettor {
-	return &FieldsGettor{
-		fieldStack:       util.CreateStack(),
-		hasUnSupportFunc: false,
-	}
-}
-
 func (s *FieldsGettor) GetFields() []*FieldRelation {
-	return s.fieldStack.Top().([]*FieldRelation)
+	v := s.fieldStack.Top()
+	if v == nil {
+		return nil
+	}
+	return v.([]*FieldRelation)
 }
 
 func (s *FieldsGettor) HasUnSupportFunc() bool {
@@ -168,7 +175,7 @@ func (s *FieldsGettor) Enter(n ast.Node) (node ast.Node, skipChildren bool) {
 		//a SelectStmt, a UnionStmt, or a JoinNode.
 		switch mm := nn.Source.(type) {
 		case *ast.TableName:
-			s.AppendFields(GetAllFieldsOfTable(mm.Name.L)...)
+			s.AppendFields(s.GetAllFieldsOfTable(mm.Name.L)...)
 		case *ast.SelectStmt:
 
 		case *ast.UnionStmt:
@@ -282,13 +289,14 @@ type TableAliasStmtInfo struct {
 }
 
 // BuildPlan build plan for ast
-func BuildPlan(stmt ast.StmtNode, phyDBs map[string]string, db, sql string) (Plan, error) {
+func BuildPlan(stmt ast.StmtNode, phyDBs map[string]string, db, sql string,
+	maskRule *map[util.RuleKey]string, tableDesc *map[string][]string) (Plan, error) {
 	if IsSelectLastInsertIDStmt(stmt) {
 		return CreateSelectLastInsertIDPlan(), nil
 	}
 
 	if estmt, ok := stmt.(*ast.ExplainStmt); ok {
-		return buildExplainPlan(estmt, phyDBs, db, sql)
+		return buildExplainPlan(estmt, phyDBs, db, sql, maskRule, tableDesc)
 	}
 
 	checker := NewChecker(db)
@@ -296,12 +304,25 @@ func BuildPlan(stmt ast.StmtNode, phyDBs map[string]string, db, sql string) (Pla
 	if checker.IsDatabaseInvalid() {
 		return nil, fmt.Errorf("no database selected") // TODO: return standard MySQL error
 	}
-	gettor := NewFieldGettor()
+	gettor := NewFieldGettor(tableDesc)
 	stmt.Accept(gettor)
 	if gettor.HasUnSupportFunc() {
 		return nil, fmt.Errorf("has unsupport func")
 	}
 	fields := gettor.GetFields()
+	if maskRule != nil {
+		for _, v := range fields {
+			key := util.RuleKey{
+				Table: v.OriginTable,
+				Col:   v.OriginField,
+			}
+			maskFunc, ok := (*maskRule)[key]
+			if ok {
+				v.IsMaskField = true
+				v.MaskFunc = maskFunc
+			}
+		}
+	}
 	return CreateUnshardPlan(stmt, phyDBs, db, checker.GetUnshardTableNames(), fields)
 }
 

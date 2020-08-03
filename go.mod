@@ -13,6 +13,7 @@ require (
 	github.com/gin-contrib/sse v0.0.0-20190301062529-5545eab6dad3 // indirect
 	github.com/gin-gonic/gin v1.3.0
 	github.com/go-ini/ini v1.42.0
+	github.com/howeyc/fsnotify v0.9.0
 	github.com/jawher/mow.cli v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible // indirect
