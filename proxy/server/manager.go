@@ -494,6 +494,11 @@ func (m *Manager) GetRule(rule string) *RuleList {
 	return m.rules[current].GetRule(rule)
 }
 
+func (m *Manager) GetWhiteList(db, user string) *WhiteListRecord {
+	current, _, _ := m.switchIndex.Get()
+	return m.whiteList[current].GetWhiteListRecord(db, user)
+}
+
 // CheckUser check if user in users
 func (m *Manager) CheckUser(user string) bool {
 	current, _, _ := m.switchIndex.Get()
@@ -659,11 +664,29 @@ func (m *Manager) GetMaskRule(namespace, db, user string) (*map[util.RuleKey]str
 
 	ruleMap := make(map[util.RuleKey]string)
 
-	for _, v := range ruleList.rulelist {
-		ruleMap[util.RuleKey{
-			Table: v.Action.Mask.TableName,
-			Col:   v.Action.Mask.ColName,
-		}] = v.Action.Mask.Function
+	whiteList := m.GetWhiteList(database.WhiteList, user)
+	allWhite := false
+	var whiteRecord map[string]bool
+	if whiteList != nil {
+		now := time.Now()
+		if now.After(whiteList.FromTime) && now.Before(whiteList.ToTime) {
+			if _, ok := whiteList.Rules["*"]; ok {
+				allWhite = true
+			}
+			whiteRecord = whiteList.Rules
+		}
+	}
+
+	if allWhite == false {
+		for _, v := range ruleList.rulelist {
+			if _, ok := whiteRecord[v.Name]; ok {
+				continue
+			}
+			ruleMap[util.RuleKey{
+				Table: v.Action.Mask.TableName,
+				Col:   v.Action.Mask.ColName,
+			}] = v.Action.Mask.Function
+		}
 	}
 	return &ruleMap, nil
 }
@@ -769,6 +792,15 @@ func CreateWhiteListManager(whitelistConfigs map[string]*models.WhiteList) *Whit
 		nsMgr.whitelists[whitelist.name] = whitelist
 	}
 	return nsMgr
+}
+
+func (mgr *WhiteListManager) GetWhiteListRecord(db, user string) *WhiteListRecord {
+	wl, ok := mgr.whitelists[db]
+	if !ok || wl == nil {
+		return nil
+	}
+	wr, ok := wl.whitelist[user]
+	return wr
 }
 
 // NamespaceManager is the manager that holds all namespaces
