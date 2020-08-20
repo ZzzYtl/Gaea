@@ -18,13 +18,13 @@ import "errors"
 
 // Slice means config model of slice
 type Slice struct {
-	UserName string   `json:"user_name"`
+	UserName string   `json:"userName"`
 	Password string   `json:"password"`
 	Slaves   []string `json:"slaves"`
 
-	Capacity    int `json:"capacity"`     // connection pool capacity
-	MaxCapacity int `json:"max_capacity"` // max connection pool capacity
-	IdleTimeout int `json:"idle_timeout"` // close backend direct connection after idle_timeout,unit: seconds
+	Capacity    int `json:"capacity"`    // connection pool capacity
+	MaxCapacity int `json:"maxCapacity"` // max connection pool capacity
+	IdleTimeout int `json:"idleTimeout"` // close backend direct connection after idle_timeout,unit: seconds
 }
 
 func (s *Slice) verify() error {

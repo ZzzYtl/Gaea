@@ -31,7 +31,7 @@ type Namespace struct {
 	Name string `json:"name"`
 	//Online           bool              `json:"online"`
 	//ReadOnly         bool              `json:"read_only"`
-	AllowedDBS    map[string]bool   `json:"allowed_dbs"`
+	AllowedDBS    map[string]bool   `json:"allowedDbs"`
 	DefaultPhyDBS map[string]string `json:"default_phy_dbs"`
 	SlowSQLTime   string            `json:"slow_sql_time"`
 	BlackSQL      []string          `json:"black_sql"`

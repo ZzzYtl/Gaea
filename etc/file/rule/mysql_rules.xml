@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
-<Rule>
-  <Rule id="1" name="test" file_name="mysql_rule_1.xml" enable="1" ext_file_name="mysql_ext_rule_1.xml" ext_enable="0" version="0"/>
-  <Rule id="4" name="test2" file_name="mysql_rule_4.xml" enable="1" ext_file_name="mysql_ext_rule_4.xml" ext_enable="0" version="0"/>
-</Rule>

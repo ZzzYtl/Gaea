@@ -221,12 +221,12 @@ func (s *Store) LoadWhiteList(key, name string) (*WhiteList, error) {
 
 // NamespaceBase return namespace path base
 func (s *Store) RuleListBase() string {
-	return filepath.Join(s.prefix, "rule")
+	return filepath.Join(s.prefix, "")
 }
 
 // NamespacePath concat namespace path
 func (s *Store) RuleListPath(name string) string {
-	return filepath.Join(s.prefix, "rule", name)
+	return filepath.Join(s.prefix, "", name)
 }
 
 // LoadNamespace load namespace value
@@ -277,12 +277,12 @@ func (s *Store) LoadRule(key, name string) (*FilterList, error) {
 
 // NamespaceBase return namespace path base
 func (s *Store) DBBase() string {
-	return filepath.Join(s.prefix, "rule")
+	return filepath.Join(s.prefix, "")
 }
 
 // NamespacePath concat namespace path
 func (s *Store) DBPath(name string) string {
-	return filepath.Join(s.prefix, "rule", name)
+	return filepath.Join(s.prefix, "", name)
 }
 
 // LoadNamespace load namespace value

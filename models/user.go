@@ -41,7 +41,7 @@ const (
 
 // User meand user struct
 type User struct {
-	UserName  string `json:"user_name"`
+	UserName  string `json:"userName"`
 	Password  string `json:"password"`
 	Namespace string `json:"namespace"`
 	//RWFlag        int    `json:"rw_flag"`        //1: 只读 2:读写

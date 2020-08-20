@@ -68,7 +68,7 @@ func IsSelectLastInsertIDStmt(stmt ast.StmtNode) bool {
 	return f.FnName.L == "last_insert_id"
 }
 
-func ProcessMask(n *ast.SelectStmt, fieldRealstions []*FieldRelation) {
+func ProcessMask(n *ast.SelectStmt, fieldRealstions *[]*FieldRelation) {
 	if n.Fields == nil {
 		return
 	}
@@ -81,7 +81,7 @@ func ProcessMask(n *ast.SelectStmt, fieldRealstions []*FieldRelation) {
 	n.Fields.Fields = fields
 }
 
-func ProcessFieldMask(n ast.Node, fieldsRelation []*FieldRelation) ast.Node {
+func ProcessFieldMask(n ast.Node, fieldsRelation *[]*FieldRelation) ast.Node {
 	switch v := n.(type) {
 	case *ast.FuncCallExpr:
 		if strings.EqualFold(v.FnName.L, "left") {
@@ -99,16 +99,36 @@ func ProcessFieldMask(n ast.Node, fieldsRelation []*FieldRelation) ast.Node {
 	return n
 }
 
-func ProcessSelectFieldMask(field *ast.SelectField, fieldRealstions []*FieldRelation) []*ast.SelectField {
+func ProcessSelectFieldMask(field *ast.SelectField, fieldRealstions *[]*FieldRelation) []*ast.SelectField {
 	var fields []*ast.SelectField
 	if field.Expr != nil {
+		if len(*fieldRealstions) > 0 {
+			var str = ""
+			if len((*fieldRealstions)[0].AliasTable) > 0 {
+				str = (*fieldRealstions)[0].AliasTable + "." + (*fieldRealstions)[0].AliasField
+			} else {
+				str = (*fieldRealstions)[0].AliasField
+			}
+			field.AsName.L = str
+			field.AsName.O = str
+		}
 		field.Expr = ProcessFieldMask(field.Expr, fieldRealstions).(ast.ExprNode)
 		fields = append(fields, field)
 		return fields
 	} else if field.WildCard != nil {
-		for _, v := range fieldRealstions {
+		for _, v := range *fieldRealstions {
 			if len(field.WildCard.Table.L) == 0 || strings.EqualFold(v.AliasTable, field.WildCard.Table.L) {
 				newField := &ast.SelectField{}
+				if len(*fieldRealstions) > 0 {
+					var str = ""
+					if len((*fieldRealstions)[0].AliasTable) > 0 {
+						str = (*fieldRealstions)[0].AliasTable + "." + (*fieldRealstions)[0].AliasField
+					} else {
+						str = (*fieldRealstions)[0].AliasField
+					}
+					field.AsName.L = str
+					field.AsName.O = str
+				}
 				newField.Expr = &ast.ColumnNameExpr{
 					Name: &ast.ColumnName{
 						Table: model.CIStr{v.AliasTable, strings.ToLower(v.AliasTable)},
@@ -123,16 +143,23 @@ func ProcessSelectFieldMask(field *ast.SelectField, fieldRealstions []*FieldRela
 	return fields
 }
 
-func IsMaskField(Name *ast.ColumnName, fields []*FieldRelation) (string, bool) {
-	for _, v := range fields {
-		if strings.EqualFold(Name.Name.L, v.AliasField) &&
-			strings.EqualFold(Name.Table.L, v.AliasTable) {
-			if v.IsMaskField {
-				return v.MaskFunc, true
-			}
-		}
+func IsMaskField(Name *ast.ColumnName, fields *[]*FieldRelation) (string, bool) {
+	if len(*fields) > 0 {
+		funC := (*fields)[0].MaskFunc
+		isMaskField := (*fields)[0].IsMaskField
+		(*fields) = (*fields)[1:]
+		return funC, isMaskField
 	}
 	return "", false
+	//for _, v := range fields {
+	//	if strings.EqualFold(Name.Name.L, v.AliasField) &&
+	//		(Name.Table.L == "" || strings.EqualFold(Name.Table.L, v.AliasTable)) {
+	//		if v.IsMaskField {
+	//			return v.MaskFunc, true
+	//		}
+	//	}
+	//}
+	//return "", false
 }
 
 func PackMaskNode(arg ast.ExprNode, maskFunc string) ast.ExprNode {
@@ -142,7 +169,7 @@ func PackMaskNode(arg ast.ExprNode, maskFunc string) ast.ExprNode {
 	return newField
 }
 
-func ProcessArgsMask(args []ast.ExprNode, fieldsRelation []*FieldRelation) {
+func ProcessArgsMask(args []ast.ExprNode, fieldsRelation *[]*FieldRelation) {
 	for i, arg := range args {
 		if columnExpr, ok := arg.(*ast.ColumnNameExpr); ok {
 			if maskFunc, ok := IsMaskField(columnExpr.Name, fieldsRelation); ok {
@@ -163,7 +190,7 @@ func CreateUnshardPlan(stmt ast.StmtNode, phyDBs map[string]string, db string, t
 	}
 	rewriteUnshardTableName(phyDBs, tableNames)
 	if st, ok := stmt.(*ast.SelectStmt); ok {
-		ProcessMask(st, fields)
+		ProcessMask(st, &fields)
 	}
 	rsql, err := generateUnshardingSQL(stmt)
 	fmt.Println("==========", rsql)

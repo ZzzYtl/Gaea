@@ -131,7 +131,7 @@ func NewFieldGettor(td *map[string][]string) *FieldsGettor {
 
 func (s *FieldsGettor) GetAllFieldsOfTable(table string) []*FieldRelation {
 	var rst = make([]*FieldRelation, 0)
-	if v, ok := (*s.tableDesc)[table]; ok {
+	if v, ok := (*s.tableDesc)[strings.ToUpper(table)]; ok {
 		for _, field := range v {
 			rst = append(rst, &FieldRelation{
 				AliasField:  field,
@@ -306,9 +306,9 @@ func BuildPlan(stmt ast.StmtNode, phyDBs map[string]string, db, sql string,
 	}
 	gettor := NewFieldGettor(tableDesc)
 	stmt.Accept(gettor)
-	if gettor.HasUnSupportFunc() {
-		return nil, fmt.Errorf("has unsupport func")
-	}
+	//if gettor.HasUnSupportFunc() {
+	//	return nil, fmt.Errorf("has unsupport func")
+	//}
 	fields := gettor.GetFields()
 	if maskRule != nil {
 		for _, v := range fields {
