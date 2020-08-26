@@ -88,7 +88,7 @@ func NewAdminServer(proxy *Server, cfg *models.Proxy) (*AdminServer, error) {
 	s.registerMetric()
 	s.registerProf()
 
-	proxyInfo, err := NewProxyInfo(cfg, s.proxy.Listener().Addr().String())
+	proxyInfo, err := NewProxyInfo(cfg, s.proxy.cfg.ProxyAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func (s *AdminServer) configFingerprint(c *gin.Context) {
 // getNamespaceSessionSQLFingerprint return namespace sql fingerprint information
 func (s *AdminServer) getNamespaceSessionSQLFingerprint(c *gin.Context) {
 	ns := strings.TrimSpace(c.Param("namespace"))
-	namespace := s.proxy.manager.GetNamespace(ns)
+	namespace := s.proxy.manager.GetNamespaceByName(ns)
 	if namespace == nil {
 		c.JSON(selfDefinedInternalError, "namespace not found")
 		return
@@ -303,7 +303,7 @@ func (s *AdminServer) getNamespaceSessionSQLFingerprint(c *gin.Context) {
 
 func (s *AdminServer) getNamespaceBackendSQLFingerprint(c *gin.Context) {
 	ns := strings.TrimSpace(c.Param("namespace"))
-	namespace := s.proxy.manager.GetNamespace(ns)
+	namespace := s.proxy.manager.GetNamespaceByName(ns)
 	if namespace == nil {
 		c.JSON(selfDefinedInternalError, "namespace not found")
 		return

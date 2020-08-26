@@ -53,6 +53,7 @@ type UserProperty struct {
 // Namespace is struct driected used by server
 type Namespace struct {
 	name               string
+	proxyPort          uint32
 	allowedDBs         map[string]bool
 	defaultPhyDBs      map[string]string // logicDBName-phyDBName
 	sqls               map[string]string //key: sql fingerprint
@@ -80,6 +81,7 @@ func NewNamespace(namespaceConfig *models.Namespace) (*Namespace, error) {
 	var err error
 	namespace := &Namespace{
 		name:                 namespaceConfig.Name,
+		proxyPort:            namespaceConfig.ProxyPort,
 		sqls:                 make(map[string]string, 16),
 		userProperties:       make(map[string]*UserProperty, 2),
 		slowSQLCache:         cache.NewLRUCache(defaultSQLCacheCapacity),
@@ -175,6 +177,10 @@ func (n *Namespace) GetName() string {
 // GetSlice return slice of namespace
 func (n *Namespace) GetSlice() *backend.Slice {
 	return n.slice
+}
+
+func (n *Namespace) GetProxyPort() uint32 {
+	return n.proxyPort
 }
 
 // GetRouter return router of namespace
@@ -423,6 +429,9 @@ func parseSlice(cfg *models.Slice, charset string, collationID mysql.CollationID
 	//}
 
 	// parse slaves
+	if len(cfg.Master) != 0 {
+		cfg.Slaves = append(cfg.Slaves, cfg.Master)
+	}
 	err = s.ParseSlave(cfg.Slaves)
 	if err != nil {
 		return nil, err

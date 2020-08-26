@@ -500,6 +500,10 @@ func (c *Conn) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
+func (c *Conn) LocalAddr() net.Addr {
+	return c.conn.LocalAddr()
+}
+
 // GetConnectionID returns the MySQL connection ID for this connection.
 func (c *Conn) GetConnectionID() uint32 {
 	return c.ConnectionID

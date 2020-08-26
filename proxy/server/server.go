@@ -36,10 +36,16 @@ var (
 	timeWheelBucketsNum = 3600
 )
 
+type Listener struct {
+	listener net.Listener
+	ch       chan interface{}
+}
+
 // Server means proxy that serve client request
 type Server struct {
-	closed         sync2.AtomicBool
-	listener       net.Listener
+	closed    sync2.AtomicBool
+	listeners map[uint32]*Listener
+
 	sessionTimeout time.Duration
 	tw             *util.TimeWheel
 	adminServer    *AdminServer
@@ -73,7 +79,7 @@ func NewServer(cfg *models.Proxy, manager *Manager) (*Server, error) {
 
 	s.closed = sync2.NewAtomicBool(false)
 
-	s.listener, err = net.Listen(cfg.ProtoType, cfg.ProxyAddr)
+	err = s.NewListeners()
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +133,8 @@ func NewServer(cfg *models.Proxy, manager *Manager) (*Server, error) {
 }
 
 // Listener return proxy's listener
-func (s *Server) Listener() net.Listener {
-	return s.listener
+func (s *Server) Listeners() map[uint32]*Listener {
+	return s.listeners
 }
 
 func (s *Server) onConn(c net.Conn) {
@@ -174,16 +180,17 @@ func (s *Server) Run() error {
 	go s.CheckConfig()
 	// start Server
 	s.closed.Set(false)
-	for s.closed.Get() != true {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			log.Warn("[server] listener accept error: %s", err.Error())
-			continue
-		}
-
-		go s.onConn(conn)
+	for _, listener := range s.listeners {
+		go func(lis *Listener) {
+			for s.closed.Get() != true {
+				conn, err := lis.listener.Accept()
+				if err != nil {
+					log.Warn("[server] listener accept error: %s", err.Error())
+				}
+				go s.onConn(conn)
+			}
+		}(listener)
 	}
-
 	return nil
 }
 
@@ -194,14 +201,33 @@ func (s *Server) Close() error {
 	}
 
 	s.closed.Set(true)
-	if s.listener != nil {
-		err := s.listener.Close()
-		if err != nil {
-			return err
+	for _, v := range s.listeners {
+		if v.listener != nil {
+			err := v.listener.Close()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
 	s.manager.Close()
+	return nil
+}
+
+func (s *Server) NewListeners() error {
+	s.listeners = make(map[uint32]*Listener)
+	ports := s.manager.GetProxyPorts()
+	for _, v := range ports {
+		s.listeners[v] = &Listener{
+			listener: nil,
+			ch:       make(chan interface{}),
+		}
+		listener, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", v))
+		if err != nil {
+			return err
+		}
+		s.listeners[v].listener = listener
+	}
 	return nil
 }
 

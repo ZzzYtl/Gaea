@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"net"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -44,6 +45,8 @@ type Session struct {
 	proxy *Server
 
 	manager *Manager
+
+	connectPort uint32
 
 	namespace string
 
@@ -79,7 +82,7 @@ func newSession(s *Server, co net.Conn) *Session {
 }
 
 func (cc *Session) getNamespace() *Namespace {
-	return cc.manager.GetNamespace(cc.namespace)
+	return cc.manager.GetNamespace(cc.connectPort)
 }
 
 // IsAllowConnect check if allow to connect
@@ -156,7 +159,7 @@ func (cc *Session) handleHandshakeResponse(info HandshakeResponseInfo) error {
 	cc.executor.user = user
 
 	// check password
-	succ, password := cc.manager.CheckPassword(user, info.Salt, info.AuthResponse)
+	succ, _ := cc.manager.CheckPassword(user, info.Salt, info.AuthResponse)
 	if !succ {
 		return mysql.NewDefaultError(mysql.ErrAccessDenied, user, cc.c.RemoteAddr().String(), "Yes")
 	}
@@ -178,10 +181,14 @@ func (cc *Session) handleHandshakeResponse(info HandshakeResponseInfo) error {
 	cc.executor.SetDatabase(info.Database)
 
 	// set namespace
-	namespace := cc.manager.GetNamespaceByUser(user, password)
-	cc.namespace = namespace
-	cc.executor.namespace = namespace
-	cc.c.namespace = namespace // TODO: remove it when refactor is done
+	_, portStr, _ := net.SplitHostPort(cc.c.LocalAddr().String())
+	port, _ := strconv.Atoi(portStr)
+	cc.connectPort = uint32(port)
+	namespace := cc.manager.GetNamespace(cc.connectPort)
+	cc.namespace = namespace.name
+	cc.executor.namespace = namespace.name
+	cc.executor.connectProxyPort = cc.connectPort
+	cc.c.namespace = namespace.name // TODO: remove it when refactor is done
 	return nil
 }
 

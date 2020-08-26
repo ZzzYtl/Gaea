@@ -28,7 +28,8 @@ import (
 
 // Namespace means namespace model stored in etcd
 type Namespace struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
+	ProxyPort uint32 `json:"proxyPort"`
 	//Online           bool              `json:"online"`
 	//ReadOnly         bool              `json:"read_only"`
 	AllowedDBS    map[string]bool   `json:"allowedDbs"`

@@ -43,7 +43,7 @@ const (
 type User struct {
 	UserName  string `json:"userName"`
 	Password  string `json:"password"`
-	Namespace string `json:"namespace"`
+	Namespace string
 	//RWFlag        int    `json:"rw_flag"`        //1: 只读 2:读写
 	//RWSplit       int    `json:"rw_split"`       //0: 不采用读写分离 1:读写分离
 	//OtherProperty int    `json:"other_property"` // 1:统计用户

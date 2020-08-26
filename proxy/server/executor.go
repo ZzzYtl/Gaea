@@ -42,13 +42,14 @@ const (
 type SessionExecutor struct {
 	manager *Manager
 
-	namespace    string
-	user         string
-	db           string
-	maskRule     *map[util.RuleKey]string
-	tableDesc    *map[string][]string
-	status       uint16
-	lastInsertID uint64
+	namespace        string
+	connectProxyPort uint32
+	user             string
+	db               string
+	maskRule         *map[util.RuleKey]string
+	tableDesc        *map[string][]string
+	status           uint16
+	lastInsertID     uint64
 
 	collation        mysql.CollationID
 	charset          string
@@ -159,8 +160,12 @@ func newSessionExecutor(manager *Manager) *SessionExecutor {
 }
 
 // GetNamespace return namespace in session
+//func (se *SessionExecutor) GetNamespace() *Namespace {
+//	return se.manager.GetNamespace(se.namespace)
+//}
+
 func (se *SessionExecutor) GetNamespace() *Namespace {
-	return se.manager.GetNamespace(se.namespace)
+	return se.manager.GetNamespace(se.connectProxyPort)
 }
 
 // GetVariables return variables in session
@@ -220,7 +225,7 @@ func (se *SessionExecutor) SetCollationID(id mysql.CollationID) {
 
 // SetNamespaceDefaultCollationID store default collation id
 func (se *SessionExecutor) SetNamespaceDefaultCollationID() {
-	se.collation = se.manager.GetNamespace(se.namespace).GetDefaultCollationID()
+	se.collation = se.manager.GetNamespaceByName(se.namespace).GetDefaultCollationID()
 }
 
 // GetCollationID return collation id
@@ -235,7 +240,7 @@ func (se *SessionExecutor) SetCharset(charset string) {
 
 // SetNamespaceDefaultCharset set session default charset
 func (se SessionExecutor) SetNamespaceDefaultCharset() {
-	se.charset = se.manager.GetNamespace(se.namespace).GetDefaultCharset()
+	se.charset = se.manager.GetNamespaceByName(se.namespace).GetDefaultCharset()
 }
 
 // GetCharset return charset

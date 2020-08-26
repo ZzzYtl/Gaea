@@ -20,6 +20,7 @@ import "errors"
 type Slice struct {
 	UserName string   `json:"userName"`
 	Password string   `json:"password"`
+	Master   string   `json:"master"`
 	Slaves   []string `json:"slaves"`
 
 	Capacity    int `json:"capacity"`    // connection pool capacity
@@ -32,7 +33,7 @@ func (s *Slice) verify() error {
 		return errors.New("missing user")
 	}
 
-	if len(s.Slaves) == 0 {
+	if len(s.Slaves) == 0 && len(s.Master) == 0 {
 		return errors.New("slaves empty")
 	}
 

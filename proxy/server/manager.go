@@ -403,7 +403,7 @@ func (m *Manager) ReloadNamespacePrepare(namespaceConfig *models.Namespace) erro
 func (m *Manager) ReloadNamespaceCommit(name string) error {
 	current, _, index := m.switchIndex.Get()
 
-	currentNamespace := m.namespaces[current].GetNamespace(name)
+	currentNamespace := m.namespaces[current].GetNamespaceByName(name)
 	if currentNamespace != nil {
 		go currentNamespace.Close(true)
 	}
@@ -432,7 +432,7 @@ func (m *Manager) DeleteNamespace(name string) error {
 	current, other, index := m.switchIndex.Get()
 
 	// idempotent delete
-	currentNamespace := m.namespaces[current].GetNamespace(name)
+	currentNamespace := m.namespaces[current].GetNamespaceByName(name)
 	if currentNamespace == nil {
 		return nil
 	}
@@ -479,9 +479,15 @@ func (m *Manager) ReloadAllPrepare(namespaceConfigs map[string]*models.Namespace
 }
 
 // GetNamespace return specific namespace
-func (m *Manager) GetNamespace(name string) *Namespace {
+func (m *Manager) GetNamespaceByName(name string) *Namespace {
 	current, _, _ := m.switchIndex.Get()
-	return m.namespaces[current].GetNamespace(name)
+	return m.namespaces[current].GetNamespaceByName(name)
+}
+
+// GetNamespace return specific namespace
+func (m *Manager) GetNamespace(port uint32) *Namespace {
+	current, _, _ := m.switchIndex.Get()
+	return m.namespaces[current].GetNamespace(port)
 }
 
 func (m *Manager) GetDataBase(key models.DBKey) *DataBase {
@@ -516,11 +522,11 @@ func (m *Manager) GetStatisticManager() *StatisticManager {
 	return m.statistics
 }
 
-// GetNamespaceByUser return namespace by user
-func (m *Manager) GetNamespaceByUser(userName, password string) string {
-	current, _, _ := m.switchIndex.Get()
-	return m.users[current].GetNamespaceByUser(userName, password)
-}
+//// GetNamespaceByUser return namespace by user
+//func (m *Manager) GetNamespaceByUser(userName, password string) string {
+//	current, _, _ := m.switchIndex.Get()
+//	return m.users[current].GetNamespaceByUser(userName, password)
+//}
 
 // ConfigFingerprint return config fingerprint
 func (m *Manager) ConfigFingerprint() string {
@@ -528,9 +534,21 @@ func (m *Manager) ConfigFingerprint() string {
 	return m.namespaces[current].ConfigFingerprint()
 }
 
+func (m *Manager) GetProxyPorts() []uint32 {
+	current, _, _ := m.switchIndex.Get()
+	spaces := m.namespaces[current].GetNamespaces()
+	ports := make([]uint32, 0, 10)
+	for _, v := range spaces {
+		if v != nil {
+			ports = append(ports, v.GetProxyPort())
+		}
+	}
+	return ports
+}
+
 // RecordSessionSQLMetrics record session SQL metrics, like response time, error
 func (m *Manager) RecordSessionSQLMetrics(reqCtx *util.RequestContext, namespace string, sql string, startTime time.Time, err error) {
-	ns := m.GetNamespace(namespace)
+	ns := m.GetNamespaceByName(namespace)
 	if ns == nil {
 		log.Warn("record session SQL metrics error, namespace: %s, sql: %s, err: %s", namespace, sql, "namespace not found")
 		return
@@ -569,7 +587,7 @@ func (m *Manager) RecordSessionSQLMetrics(reqCtx *util.RequestContext, namespace
 
 // RecordBackendSQLMetrics record backend SQL metrics, like response time, error
 func (m *Manager) RecordBackendSQLMetrics(reqCtx *util.RequestContext, namespace string, sql, backendAddr string, startTime time.Time, err error) {
-	ns := m.GetNamespace(namespace)
+	ns := m.GetNamespaceByName(namespace)
 	if ns == nil {
 		log.Warn("record backend SQL metrics error, namespace: %s, backend addr: %s, sql: %s, err: %s", namespace, backendAddr, sql, "namespace not found")
 		return
@@ -619,8 +637,8 @@ func (m *Manager) startConnectPoolMetricsTask(interval int) {
 				return
 			case <-t.C:
 				current, _, _ := m.switchIndex.Get()
-				for nameSpaceName, _ := range m.namespaces[current].namespaces {
-					m.recordBackendConnectPoolMetrics(nameSpaceName)
+				for _, v := range m.namespaces[current].namespaces {
+					m.recordBackendConnectPoolMetrics(v.name)
 				}
 			}
 		}
@@ -628,7 +646,7 @@ func (m *Manager) startConnectPoolMetricsTask(interval int) {
 }
 
 func (m *Manager) recordBackendConnectPoolMetrics(namespace string) {
-	ns := m.GetNamespace(namespace)
+	ns := m.GetNamespaceByName(namespace)
 	if ns == nil {
 		log.Warn("record backend connect pool metrics err, namespace: %s", namespace)
 		return
@@ -636,7 +654,7 @@ func (m *Manager) recordBackendConnectPoolMetrics(namespace string) {
 }
 
 func (m *Manager) GetMaskRule(namespace, db, user string) (*map[util.RuleKey]string, error) {
-	ns := m.GetNamespace(namespace)
+	ns := m.GetNamespaceByName(namespace)
 	if ns == nil {
 		return nil, fmt.Errorf("cant find namespace:%s", namespace)
 	}
@@ -693,13 +711,13 @@ func (m *Manager) GetMaskRule(namespace, db, user string) (*map[util.RuleKey]str
 
 // NamespaceManager is the manager that holds all namespaces
 type NamespaceManager struct {
-	namespaces map[string]*Namespace
+	namespaces map[uint32]*Namespace
 }
 
 // NewNamespaceManager constructor of NamespaceManager
 func NewNamespaceManager() *NamespaceManager {
 	return &NamespaceManager{
-		namespaces: make(map[string]*Namespace, 64),
+		namespaces: make(map[uint32]*Namespace, 64),
 	}
 }
 
@@ -712,7 +730,7 @@ func CreateNamespaceManager(namespaceConfigs map[string]*models.Namespace) *Name
 			log.Warn("create namespace %s failed, err: %v", config.Name, err)
 			continue
 		}
-		nsMgr.namespaces[namespace.name] = namespace
+		nsMgr.namespaces[namespace.proxyPort] = namespace
 	}
 	return nsMgr
 }
@@ -733,37 +751,49 @@ func (n *NamespaceManager) RebuildNamespace(config *models.Namespace) error {
 		log.Warn("create namespace %s failed, err: %v", config.Name, err)
 		return err
 	}
-	n.namespaces[config.Name] = namespace
+	n.namespaces[config.ProxyPort] = namespace
 	return nil
 }
 
 // DeleteNamespace delete namespace
 func (n *NamespaceManager) DeleteNamespace(ns string) {
-	delete(n.namespaces, ns)
+	port := n.GetNamespaceByName(ns).proxyPort
+	delete(n.namespaces, port)
 }
 
 // GetNamespace get namespace in NamespaceManager
-func (n *NamespaceManager) GetNamespace(namespace string) *Namespace {
-	return n.namespaces[namespace]
+func (n *NamespaceManager) GetNamespaceByName(namespace string) *Namespace {
+	for _, v := range n.namespaces {
+		if v != nil {
+			if v.name == namespace {
+				return v
+			}
+		}
+	}
+	return nil
+}
+
+// GetNamespace get namespace in NamespaceManager
+func (n *NamespaceManager) GetNamespace(port uint32) *Namespace {
+	return n.namespaces[port]
 }
 
 // GetNamespaces return all namespaces in NamespaceManager
-func (n *NamespaceManager) GetNamespaces() map[string]*Namespace {
+func (n *NamespaceManager) GetNamespaces() map[uint32]*Namespace {
 	return n.namespaces
 }
 
 // ConfigFingerprint return config fingerprint
 func (n *NamespaceManager) ConfigFingerprint() string {
-	sortedKeys := make([]string, 0)
+	sortedKeys := make([]int, 0)
 	for k := range n.GetNamespaces() {
-		sortedKeys = append(sortedKeys, k)
+		sortedKeys = append(sortedKeys, int(k))
 	}
-
-	sort.Strings(sortedKeys)
+	sort.Ints(sortedKeys)
 
 	h := md5.New()
 	for _, k := range sortedKeys {
-		h.Write(n.GetNamespace(k).DumpToJSON())
+		h.Write(n.GetNamespace(uint32(k)).DumpToJSON())
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
@@ -961,14 +991,14 @@ func (u *UserManager) CheckPassword(user string, salt, auth []byte) (bool, strin
 	return false, ""
 }
 
-// GetNamespaceByUser return namespace by user
-func (u *UserManager) GetNamespaceByUser(userName, password string) string {
-	key := getUserKey(userName, password)
-	if name, ok := u.userNamespaces[key]; ok {
-		return name
-	}
-	return ""
-}
+//// GetNamespaceByUser return namespace by user
+//func (u *UserManager) GetNamespaceByUser(userName, password string) string {
+//	key := getUserKey(userName, password)
+//	if name, ok := u.userNamespaces[key]; ok {
+//		return name
+//	}
+//	return ""
+//}
 
 func getUserKey(username, password string) string {
 	return username + ":" + password
