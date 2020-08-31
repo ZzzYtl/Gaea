@@ -186,6 +186,7 @@ func (s *Server) Run() error {
 				conn, err := lis.listener.Accept()
 				if err != nil {
 					log.Warn("[server] listener accept error: %s", err.Error())
+					return
 				}
 				go s.onConn(conn)
 			}
@@ -237,6 +238,7 @@ func (s *Server) CheckConfig() {
 		case <-s.watcher.Event:
 			if s.ReloadCfgPrepare() == nil {
 				s.ReloadCfgCommit()
+				s.CheckListener()
 			}
 		case err := <-s.watcher.Error:
 			log.Warn("error:", err)
@@ -295,6 +297,45 @@ func (s *Server) ReloadCfgCommit() error {
 
 	log.Notice("commit config end")
 	return nil
+}
+
+func (s *Server) CheckListener() {
+	ports := s.manager.GetProxyPorts()
+	mapPorts := make(map[uint32]bool)
+	for _, port := range ports {
+		mapPorts[uint32(port)] = true
+	}
+	for k, v := range s.listeners {
+		if _, ok := mapPorts[k]; !ok {
+			v.listener.Close()
+			delete(s.listeners, k)
+		} else {
+			delete(mapPorts, k)
+		}
+	}
+
+	for port, _ := range mapPorts {
+		s.listeners[port] = &Listener{
+			listener: nil,
+			ch:       make(chan interface{}),
+		}
+		listener, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", port))
+		if err != nil {
+			return
+		}
+		s.listeners[port].listener = listener
+
+		go func(lis *Listener) {
+			for s.closed.Get() != true {
+				conn, err := lis.listener.Accept()
+				if err != nil {
+					log.Warn("[server] listener accept error: %s", err.Error())
+					return
+				}
+				go s.onConn(conn)
+			}
+		}(s.listeners[port])
+	}
 }
 
 // ReloadNamespacePrepare config change prepare phase

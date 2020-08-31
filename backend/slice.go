@@ -67,9 +67,6 @@ type Slice struct {
 func (s *Slice) GetConn(userType int) (pc *PooledConnection, err error) {
 	pc, err = s.GetSlaveConn()
 	if err != nil {
-		log.Warn("get connection from slave failed, try to get from master, error: %s", err.Error())
-	}
-	if err != nil {
 		log.Warn("get connection from backend failed, error: %s", err.Error())
 		return
 	}

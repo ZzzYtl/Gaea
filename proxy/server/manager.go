@@ -132,8 +132,14 @@ func loadAllNamespace(cfg *models.Proxy) (map[string]*models.Namespace, error) {
 
 	// collect all namespaces
 	namespaceModels := make(map[string]*models.Namespace, 64)
+	ports := make(map[uint32]interface{})
 	for namespace := range namespaceC {
 		namespaceModels[namespace.Name] = namespace
+		if _, ok := ports[namespace.ProxyPort]; ok {
+			log.Warn("duplicate port:%d", namespace.ProxyPort)
+			return nil, fmt.Errorf("duplicate port:%d", namespace.ProxyPort)
+		}
+		ports[namespace.ProxyPort] = nil
 	}
 	if err != nil {
 		log.Warn("get namespace failed, err:%v", err)

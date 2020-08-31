@@ -147,7 +147,7 @@ func (se *SessionExecutor) ScanDB() error {
 	tableDesc := make(map[string][]string)
 	se.tableDesc = &tableDesc
 	for _, table := range all_tables.Values {
-		tableName := table[0].(string)
+		tableName := strings.ToUpper(table[0].(string))
 		tableMap := make([]string, 0)
 		sql := fmt.Sprintf("show columns in %s", tableName)
 		tableDesc, err := se.handleQuery(sql)

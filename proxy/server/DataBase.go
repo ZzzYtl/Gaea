@@ -22,7 +22,7 @@ func NewDB(config *models.DataBase) (*DataBase, error) {
 		Port: config.Port,
 		Db:   config.MaskDatabaseName,
 		User: config.UserName,
-		Pw:   config.MaskDatabaseName,
+		Pw:   config.PW,
 	}
 
 	_, file := path.Split(config.WhiteList.File)

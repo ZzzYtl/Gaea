@@ -131,6 +131,9 @@ func NewFieldGettor(td *map[string][]string) *FieldsGettor {
 
 func (s *FieldsGettor) GetAllFieldsOfTable(table string) []*FieldRelation {
 	var rst = make([]*FieldRelation, 0)
+	if s.tableDesc == nil {
+		return rst
+	}
 	if v, ok := (*s.tableDesc)[strings.ToUpper(table)]; ok {
 		for _, field := range v {
 			rst = append(rst, &FieldRelation{

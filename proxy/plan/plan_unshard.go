@@ -189,7 +189,7 @@ func CreateUnshardPlan(stmt ast.StmtNode, phyDBs map[string]string, db string, t
 		stmt:   stmt,
 	}
 	rewriteUnshardTableName(phyDBs, tableNames)
-	if st, ok := stmt.(*ast.SelectStmt); ok {
+	if st, ok := stmt.(*ast.SelectStmt); ok && len(fields) != 0 {
 		ProcessMask(st, &fields)
 	}
 	rsql, err := generateUnshardingSQL(stmt)
