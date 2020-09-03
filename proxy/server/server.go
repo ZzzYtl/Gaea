@@ -243,6 +243,7 @@ func (s *Server) CheckConfig() {
 		case err := <-s.watcher.Error:
 			log.Warn("error:", err)
 		}
+		time.Sleep(time.Duration(1 * time.Second))
 	}
 }
 

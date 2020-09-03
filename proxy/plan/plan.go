@@ -302,17 +302,21 @@ func BuildPlan(stmt ast.StmtNode, phyDBs map[string]string, db, sql string,
 		return buildExplainPlan(estmt, phyDBs, db, sql, maskRule, tableDesc)
 	}
 
+	fields := make([]*FieldRelation, 0)
 	checker := NewChecker(db)
 	stmt.Accept(checker)
 	if checker.IsDatabaseInvalid() {
 		return nil, fmt.Errorf("no database selected") // TODO: return standard MySQL error
 	}
-	gettor := NewFieldGettor(tableDesc)
-	stmt.Accept(gettor)
-	//if gettor.HasUnSupportFunc() {
-	//	return nil, fmt.Errorf("has unsupport func")
-	//}
-	fields := gettor.GetFields()
+
+	if _, ok := stmt.(*ast.SelectStmt); ok {
+		gettor := NewFieldGettor(tableDesc)
+		stmt.Accept(gettor)
+		//if gettor.HasUnSupportFunc() {
+		//	return nil, fmt.Errorf("has unsupport func")
+		//}
+		fields = gettor.GetFields()
+	}
 	if maskRule != nil {
 		for _, v := range fields {
 			key := util.RuleKey{

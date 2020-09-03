@@ -668,8 +668,10 @@ func (m *Manager) GetMaskRule(namespace, db, user string) (*map[util.RuleKey]str
 	if slice == nil {
 		return nil, fmt.Errorf("cant find slice")
 	}
-
 	pc, err := slice.GetConn(0)
+	if err == nil {
+		defer pc.Recycle()
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -891,7 +893,7 @@ func CreateDBManager(dbConfigs map[models.DBKey]*models.DataBase) *DBManager {
 		db, err := NewDB(config)
 		if err != nil {
 			log.Warn("create db %v failed, err: %v", k, err)
-			continue
+			return nil
 		}
 		dbMgr.dbs[k] = db
 	}

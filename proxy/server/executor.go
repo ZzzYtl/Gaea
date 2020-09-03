@@ -575,7 +575,7 @@ func isSQLNotAllowedByUser(c *SessionExecutor, stmtType int) bool {
 	//if c.GetNamespace().IsAllowWrite(c.user) {
 	//	return false
 	//}
-
+	return false
 	return stmtType == parser.StmtDelete || stmtType == parser.StmtInsert || stmtType == parser.StmtUpdate
 }
 

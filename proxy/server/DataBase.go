@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/ZzzYtl/MyMask/models"
 	"path"
 )
@@ -27,7 +26,7 @@ func NewDB(config *models.DataBase) (*DataBase, error) {
 
 	_, file := path.Split(config.WhiteList.File)
 	if len(file) == 0 {
-		return nil, fmt.Errorf("cant find file in path %s", config.WhiteList.File)
+		//return nil, fmt.Errorf("cant find file in path %s", config.WhiteList.File)
 	}
 	db.WhiteList = file
 	db.Rule = config.Security.Rule
